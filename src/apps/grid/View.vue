@@ -186,12 +186,16 @@ export default class Main extends Vue {
     else
       this.OnGridScale(offset);
   }
+  /**
+   * @param offsetX positive values for moving towards right
+   * @param offsetY positive values for moving towards top
+   */
   private OnMouseMove(btn: number, ctrl: boolean, offsetX: number, offsetY: number) {
     if (btn & 1) {
       if (ctrl)
-        this.OnImageMove(offsetX, offsetY);
+        this.OnImageMove(offsetX, offsetY * -1);
       else
-        this.OnGridMove(offsetX, offsetY);
+        this.OnGridMove(offsetX, offsetY * -1);
     }
   }
   private OnGridScale(offset: number) {
@@ -209,7 +213,7 @@ export default class Main extends Vue {
       this.ImageScale = this.imageState[2] - step;
   }
   private OnGridMove(offsetX: number, offsetY: number) {
-    this.$set(this.gridState, 0, this.gridState[0] - offsetX);
+    this.$set(this.gridState, 0, this.gridState[0] + offsetX);
     this.$set(this.gridState, 1, this.gridState[1] + offsetY);
   }
   private OnImageMove(offsetX: number, offsetY: number) {
