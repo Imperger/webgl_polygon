@@ -11,7 +11,7 @@
       @drop.native.stop.prevent="OnLoadImage($event.dataTransfer.files[0])"
       @dragover.native.stop.prevent="_=>_"
     />
-    <div class="panel">
+    <aside>
       <table>
         <thead>
           <tr>
@@ -50,19 +50,19 @@
       </table>
       <button @click="CenterImage" class="rightMargin">Center image</button>
       <button @click="Preview">Save</button>
-    </div>
+    </aside>
   </div>
 </template>
 
 <style scoped>
 @import '../../css/button.css';
 .rightMargin {
-  margin-right: 2px;
+  margin-right: 4px;
 }
 .flex {
   display: flex;
 }
-.panel {
+aside {
   position: absolute;
   padding: 5px;
   margin: 0;
@@ -70,19 +70,17 @@
   color: #f5f5f5;
   list-style-type: none;
 }
-.panel table {
+aside table {
   width: 100%;
   margin: 3px 0;
-  border: 1px solid #f5f5f5;
-  border-radius: 5px;
 }
-.panel table > thead {
+aside table > thead {
   text-align: center;
 }
-.panel table td:not(:first-child) {
+aside table td:not(:first-child) {
   text-align: right;
 }
-.panel table {
+aside table {
   padding: 2px 1px;
 }
 </style>

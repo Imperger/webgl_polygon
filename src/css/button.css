@@ -2,8 +2,8 @@ button {
     padding: 6px 13px;
     color: #f5f5f5;
     text-transform: uppercase;
-    background-color: #8e24aa;
-    border: none;
+    background-color: #ffffff00;
+    border: 2px solid black;
     border-radius: 4px;
 }
 button:focus {
