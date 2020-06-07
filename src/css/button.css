@@ -1,0 +1,12 @@
+button {
+    padding: 6px 13px;
+    color: #f5f5f5;
+    text-transform: uppercase;
+    background-color: #8e24aa;
+    border: none;
+    border-radius: 4px;
+}
+button:focus {
+    outline: 0;
+    box-shadow: 0 2px #fbc02d;
+}
