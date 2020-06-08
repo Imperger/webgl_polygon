@@ -43,6 +43,9 @@ export class ShaderProgram {
     public SetUniform2fv(name: string, value: number[]) {
         this.gl.uniform2fv(this.GetUniformLocation(name), value);
     }
+    public SetUniform4fv(name: string, value: number[]) {
+        this.gl.uniform4fv(this.GetUniformLocation(name), value);
+    }
     public SetUniform1f(name: string, value: number) {
         this.gl.uniform1f(this.GetUniformLocation(name), value);
     }

@@ -6,7 +6,7 @@
       :height="height"
       preserveDrawingBuffer="true"
       @context-ready="OnContextReady"
-      @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey)"
+      @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey, $event.altKey)"
       @mousemove.native="OnMouseMove($event.buttons, $event.ctrlKey, $event.movementX, $event.movementY)"
       @drop.native.stop.prevent="OnLoadImage($event.dataTransfer.files[0])"
       @dragover.native.stop.prevent="_=>_"
@@ -15,9 +15,18 @@
       <fai class="panelHelpTrigger" icon="question-circle" />
       <div class="panelHelpContent">
         <ul>
-          <li><fai icon="mouse"/> + <span class="accent">LMB</span> - move grid</li>
-          <li><fai icon="mouse"/> + <span class="accent">WHEEL</span> - scale grid</li>
-          <li>Image controlled in the same way by holding <span class="accent">CTRL</span></li>
+          <li>
+            <fai icon="mouse" />+
+            <span class="accent">LMB</span> - move grid
+          </li>
+          <li>
+            <fai icon="mouse" />+
+            <span class="accent">WHEEL</span> - scale grid
+          </li>
+          <li>
+            Image controlled in the same way by holding
+            <span class="accent">CTRL</span>
+          </li>
         </ul>
       </div>
       <table>
@@ -49,6 +58,10 @@
             <td>Offset</td>
             <td>{{ imageState[0] }}</td>
             <td>{{ imageState[1] }}</td>
+          </tr>
+          <tr>
+            <td>Angle</td>
+            <td colspan="2">{{ ImageAngleDegrees.toFixed(1) }}</td>
           </tr>
           <tr>
             <td>Scale</td>
@@ -132,6 +145,7 @@ import { Mesh } from '@/render/Mesh';
 import { ObjLoader } from '@/formats/ObjLoader';
 import { EventWaiter } from '@/misc/EventWaiter';
 import { DataUrlDownloader } from '@/misc/DataUrlDownloader';
+import { ToDegrees } from '@/misc/Angle';
 
 import VShader from './grid.vert';
 import FShader from './grid.frag';
@@ -147,8 +161,8 @@ export default class Main extends Vue {
   private gl!: WebGL2RenderingContext;
   private vao: WebGLVertexArrayObject | null = null;
   private vbo: WebGLBuffer | null = null;
-  private gridState = [0, 0, 66];
-  private imageState = [0, 0, 1];
+  private gridState = [0, 0, 100];
+  private imageState = [0, 0, 0, 1];
   private width = 800;
   private height = 600;
   @Ref() private readonly view!: any;
@@ -174,7 +188,7 @@ export default class Main extends Vue {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     this.app.SetUniform3fv('u_grid', this.gridState); // [offset_x, offset_y, cell_size_in_window_coords]
-    this.app.SetUniform3fv('u_image', this.imageState);
+    this.app.SetUniform4fv('u_image', this.imageState);
 
     this.gl.bindVertexArray(this.vao);
     window.requestAnimationFrame(() => this.Draw());
@@ -218,9 +232,11 @@ export default class Main extends Vue {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     window.requestAnimationFrame(() => this.Draw());
   }
-  private OnWheel(offset: number, ctrl: boolean) {
+  private OnWheel(offset: number, ctrl: boolean, alt: boolean) {
     if (ctrl)
       this.OnImageScale(offset);
+    else if (alt)
+      this.OnImageRotate(offset);
     else
       this.OnGridScale(offset);
   }
@@ -246,9 +262,19 @@ export default class Main extends Vue {
   private OnImageScale(offset: number) {
     const step = 0.01;
     if (offset < 0)
-      this.ImageScale = this.imageState[2] + step;
+      this.ImageScale = this.imageState[3] + step;
     else if (this.ImageScale > 0.2)
-      this.ImageScale = this.imageState[2] - step;
+      this.ImageScale = this.imageState[3] - step;
+  }
+  private OnImageRotate(offset: number) {
+    const step = 2 * Math.PI / 360;
+    const clip = 2 * Math.PI;
+    if (offset > 0)
+      this.ImageAngle = (this.imageState[2] + step) % clip;
+    else if (this.imageState[2] < step)
+      this.ImageAngle = clip -  (step - this.imageState[2]);
+    else
+      this.ImageAngle = this.imageState[2] - step;
   }
   private OnGridMove(offsetX: number, offsetY: number) {
     this.$set(this.gridState, 0, this.gridState[0] + offsetX);
@@ -264,15 +290,18 @@ export default class Main extends Vue {
   private get ImageOffset() { return { x: this.imageState[0], y: this.imageState[1] }; }
   private set GridScale(val: number) { this.$set(this.gridState, 2, val); }
   private get GridScale() { return this.gridState[2]; }
-  private set ImageScale(val: number) { this.$set(this.imageState, 2, val); }
-  private get ImageScale() { return this.imageState[2]; }
+  private set ImageScale(val: number) { this.$set(this.imageState, 3, val); }
+  private get ImageScale() { return this.imageState[3]; }
+  private get ImageAngle() { return this.imageState[2]; }
+  private set ImageAngle(angle: number) { this.$set(this.imageState, 2, angle); }
+  private get ImageAngleDegrees() { return ToDegrees(this.ImageAngle); }
   @Watch('gridState')
   private OnGridUpdate() {
     this.app.SetUniform3fv('u_grid', this.gridState); // [offset_x, offset_y, cell_size_in_window_coords]
   }
   @Watch('imageState')
   private OnImageUpdate() {
-    this.app.SetUniform3fv('u_image', this.imageState);
+    this.app.SetUniform4fv('u_image', this.imageState);
   }
   private async OnLoadImage(blob: File) {
     const img = new Image();
