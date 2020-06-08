@@ -12,6 +12,14 @@
       @dragover.native.stop.prevent="_=>_"
     />
     <aside>
+      <fai class="panelHelpTrigger" icon="question-circle" />
+      <div class="panelHelpContent">
+        <ul>
+          <li><fai icon="mouse"/> + <span class="accent">LMB</span> - move grid</li>
+          <li><fai icon="mouse"/> + <span class="accent">WHEEL</span> - scale grid</li>
+          <li>Image controlled in the same way by holding <span class="accent">CTRL</span></li>
+        </ul>
+      </div>
       <table>
         <thead>
           <tr>
@@ -55,7 +63,37 @@
 </template>
 
 <style scoped>
-@import '../../css/button.css';
+@import "../../css/button.css";
+.panelHelpTrigger {
+  position: absolute;
+  font-size: 1.3em;
+  top: 5px;
+  right: 5px;
+}
+.panelHelpContent {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  visibility: hidden;
+  background-color: black;
+}
+.panelHelpContent .accent {
+  font-weight: bold;
+}
+.panelHelpContent ul {
+  list-style: none;
+  padding: 0 8px;
+}
+.panelHelpContent li {
+  margin: 5px;
+}
+.panelHelpTrigger:hover {
+  color: #455a64;
+}
+.panelHelpTrigger:hover + .panelHelpContent {
+  visibility: visible;
+}
 .rightMargin {
   margin-right: 4px;
 }
