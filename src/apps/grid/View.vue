@@ -16,16 +16,20 @@
       <div class="panelHelpContent">
         <ul>
           <li>
-            <fai icon="mouse" />+
+            <fai icon="mouse" />&nbsp;
             <span class="accent">LMB</span> - move grid
           </li>
           <li>
-            <fai icon="mouse" />+
+            <fai icon="mouse" />&nbsp;
             <span class="accent">WHEEL</span> - scale grid
           </li>
           <li>
             Image controlled in the same way by holding
             <span class="accent">CTRL</span>
+          </li>
+          <li>
+            <fai icon="mouse" />&nbsp;
+            <span class="accent">WHEEL</span> + ALT - rotate image
           </li>
         </ul>
       </div>
@@ -272,7 +276,7 @@ export default class Main extends Vue {
     if (offset > 0)
       this.ImageAngle = (this.imageState[2] + step) % clip;
     else if (this.imageState[2] < step)
-      this.ImageAngle = clip -  (step - this.imageState[2]);
+      this.ImageAngle = clip - (step - this.imageState[2]);
     else
       this.ImageAngle = this.imageState[2] - step;
   }
