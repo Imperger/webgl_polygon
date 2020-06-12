@@ -34,6 +34,8 @@ void main()
     vec2 texPos = p / vec2(textSize.x, textSize.y) / u_image.w - 0.5 - u_image.xy / u_image.w / vec2(textSize.x, textSize.y);
     texPos = scaleInv * rot * scale * texPos ;
     texPos += 0.5;
+
+    texPos.y = 1.0 - texPos.y;
     
     if (texPos.x >= 0.f && texPos.x <= 1.f && texPos.y >= 0.f && texPos.y <= 1.f)
     {
