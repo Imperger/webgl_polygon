@@ -10,3 +10,7 @@ button:focus {
     outline: 0;
     box-shadow: 0 2px #fbc02d;
 }
+button:disabled {
+    color: #9b9b9b;
+    border: 2px solid #858282;
+}

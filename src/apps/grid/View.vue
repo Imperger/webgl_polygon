@@ -66,8 +66,13 @@
           </tr>
         </tbody>
       </table>
-      <button @click="CenterImage" :disabled="NoImage" class="rightMargin">Center image</button>
-      <button @click="Preview">Save</button>
+      <div class="actions">
+        <div class="actions-group">
+          <button @click="CenterImage" :disabled="NoImage" class="rightMargin">Center image</button>
+          <button @click="Preview">Save</button>
+        </div>
+        <button @click="AlignToGrid" :disabled="NoImage">Align to grid</button>
+      </div>
     </aside>
   </div>
 </template>
@@ -110,6 +115,15 @@
 
 .panelHelpTrigger:hover+.panelHelpContent {
   visibility: visible;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+}
+
+.actions-group {
+  margin: 5px 0;
 }
 
 .rightMargin {
@@ -163,6 +177,8 @@ interface Dimension {
   width: number;
   height: number;
 }
+
+enum StateComponent { X = 0, Y = 1 };
 
 @Component({
   components: {
@@ -345,6 +361,48 @@ export default class Main extends Vue {
   }
   public CenterImage() {
     this.ImageOffset = { x: this.width / 2 - this.ImageDimension.width / 2, y: this.height / 2 - this.ImageDimension.height / 2 };
+  }
+  public AlignToGrid() {
+    this.AlignImageToCellBegin();
+    this.FitImageToGrid();
+  }
+  private AlignImageToCellBegin() {
+    this.ImageOffset = {
+      x: this.AlignedToNearVertice(this.imageState[StateComponent.X], StateComponent.X),
+      y: this.AlignedToNearVertice(this.imageState[StateComponent.Y], StateComponent.Y)
+    };
+  }
+
+  private AlignedToNearVertice(componentVal: number, componentType: StateComponent) {
+    const gridCellOffset = this.gridState[componentType] >= 0 ?
+      this.gridState[componentType] % this.gridState[2] :
+      this.gridState[2] - (-this.gridState[componentType] % this.gridState[2]);
+
+    const offsetFromCellBegin = (componentVal - gridCellOffset) % this.gridState[2];
+
+    const halfGridSize = this.gridState[2] / 2;
+
+    return componentVal + (offsetFromCellBegin < halfGridSize ? -offsetFromCellBegin : this.gridState[2] - offsetFromCellBegin)
+  };
+
+  private FitImageToGrid() {
+    const right = this.imageState[0] + this.ImageDimension.width;
+    const top = this.imageState[1] + this.ImageDimension.height;
+
+    let nearGridVerticeRight = this.AlignedToNearVertice(right, StateComponent.X);
+    let nearGridVerticeTop = this.AlignedToNearVertice(top, StateComponent.Y);
+
+    if (Math.abs(nearGridVerticeRight - this.imageState[0]) <= Number.EPSILON ||
+      Math.abs(nearGridVerticeTop - this.imageState[1]) <= Number.EPSILON) {
+      nearGridVerticeRight += this.gridState[2];
+      nearGridVerticeTop += this.gridState[2];
+    }
+
+    if (Math.abs(right - nearGridVerticeRight) < Math.abs(top - nearGridVerticeTop)) {
+      this.imageState[3] = (nearGridVerticeRight - this.imageState[0]) / this.imgRealDimension.width;
+    } else {
+      this.imageState[3] = (nearGridVerticeTop - this.imageState[1]) / this.imgRealDimension.height;
+    }
   }
   public Preview() {
     DataUrlDownloader(this.view.canvas.toDataURL(), 'image.png');
