@@ -1,16 +1,9 @@
 <template>
   <div class="flex">
-    <Viewport
-      ref="view"
-      :width="width"
-      :height="height"
-      preserveDrawingBuffer="true"
-      @context-ready="OnContextReady"
+    <Viewport ref="view" :width="width" :height="height" preserveDrawingBuffer="true" @context-ready="OnContextReady"
       @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey, $event.altKey)"
       @mousemove.native="OnMouseMove($event.buttons, $event.ctrlKey, $event.movementX, $event.movementY)"
-      @drop.native.stop.prevent="OnLoadImage($event.dataTransfer.files[0])"
-      @dragover.native.stop.prevent="()=>0"
-    />
+      @drop.native.stop.prevent="OnLoadImage($event.dataTransfer.files[0])" @dragover.native.stop.prevent="() => 0" />
     <aside>
       <fai class="panelHelpTrigger" icon="question-circle" />
       <div class="panelHelpContent">
@@ -60,8 +53,8 @@
         <tbody>
           <tr>
             <td>Offset</td>
-            <td>{{ imageState[0] }}</td>
-            <td>{{ imageState[1] }}</td>
+            <td>{{ imageState[0].toFixed(1) }}</td>
+            <td>{{ imageState[1].toFixed(1) }}</td>
           </tr>
           <tr>
             <td>Angle</td>
@@ -73,7 +66,7 @@
           </tr>
         </tbody>
       </table>
-      <button @click="CenterImage" class="rightMargin">Center image</button>
+      <button @click="CenterImage" :disabled="NoImage" class="rightMargin">Center image</button>
       <button @click="Preview">Save</button>
     </aside>
   </div>
@@ -81,12 +74,14 @@
 
 <style scoped>
 @import "../../css/button.css";
+
 .panelHelpTrigger {
   position: absolute;
   font-size: 1.3em;
   top: 5px;
   right: 5px;
 }
+
 .panelHelpContent {
   position: absolute;
   left: 0;
@@ -95,28 +90,36 @@
   visibility: hidden;
   background-color: black;
 }
+
 .panelHelpContent .accent {
   font-weight: bold;
 }
+
 .panelHelpContent ul {
   list-style: none;
   padding: 0 8px;
 }
+
 .panelHelpContent li {
   margin: 5px;
 }
+
 .panelHelpTrigger:hover {
   color: #455a64;
 }
-.panelHelpTrigger:hover + .panelHelpContent {
+
+.panelHelpTrigger:hover+.panelHelpContent {
   visibility: visible;
 }
+
 .rightMargin {
   margin-right: 4px;
 }
+
 .flex {
   display: flex;
 }
+
 aside {
   position: absolute;
   padding: 5px;
@@ -125,23 +128,27 @@ aside {
   color: #f5f5f5;
   list-style-type: none;
 }
+
 aside table {
   width: 100%;
   margin: 3px 0;
 }
-aside table > thead {
+
+aside table>thead {
   text-align: center;
 }
+
 aside table td:not(:first-child) {
   text-align: right;
 }
+
 aside table {
   padding: 2px 1px;
 }
 </style>
 
 <script lang="ts">
-import { Component, Emit, Mixins, Model, Prop, Ref, Vue, Watch } from 'vue-property-decorator';
+import { Component, Ref, Vue, Watch } from 'vue-property-decorator';
 
 import Viewport from '@/components/Viewport.vue';
 import { ShaderProgram } from '@/render/ShaderProgram';
@@ -161,7 +168,6 @@ import FShader from './grid.frag';
 })
 export default class Main extends Vue {
   private app!: ShaderProgram;
-  private mesh!: Mesh;
   private gl!: WebGL2RenderingContext;
   private vao: WebGLVertexArrayObject | null = null;
   private vbo: WebGLBuffer | null = null;
