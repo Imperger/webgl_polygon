@@ -172,6 +172,7 @@ import { ToDegrees } from '@/misc/Angle';
 
 import VShader from './grid.vert';
 import FShader from './grid.frag';
+import { AcceleratedStepper } from '@/misc/AcceleratedStepper';
 
 interface Dimension {
   width: number;
@@ -195,6 +196,7 @@ export default class Main extends Vue {
   public width = 800;
   public height = 600;
   private imgRealDimension: Dimension = { width: 0, height: 0 };
+  private scroll = new AcceleratedStepper(0.01, 0.7, 0.05, 25);
   @Ref() private readonly view!: any;
   public async mounted() {
     this.FillWindow();
@@ -290,10 +292,11 @@ export default class Main extends Vue {
       this.GridScale = this.gridState[2] - step;
   }
   private OnImageScale(offset: number) {
-    const step = 0.01;
+    const step = this.scroll.Step();
+
     if (offset < 0)
       this.ImageScale = this.imageState[3] + step;
-    else if (this.ImageScale > 0.2)
+    else if (this.ImageScale - step > 0.2)
       this.ImageScale = this.imageState[3] - step;
   }
   private OnImageRotate(offset: number) {
