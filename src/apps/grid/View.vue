@@ -152,14 +152,17 @@ import { Component, Ref, Vue, Watch } from 'vue-property-decorator';
 
 import Viewport from '@/components/Viewport.vue';
 import { ShaderProgram } from '@/render/ShaderProgram';
-import { Mesh } from '@/render/Mesh';
-import { ObjLoader } from '@/formats/ObjLoader';
 import { EventWaiter } from '@/misc/EventWaiter';
 import { DataUrlDownloader } from '@/misc/DataUrlDownloader';
 import { ToDegrees } from '@/misc/Angle';
 
 import VShader from './grid.vert';
 import FShader from './grid.frag';
+
+interface Dimension {
+  width: number;
+  height: number;
+}
 
 @Component({
   components: {
@@ -175,6 +178,7 @@ export default class Main extends Vue {
   public imageState = [0, 0, 0, 1];
   public width = 800;
   public height = 600;
+  private imgRealDimension: Dimension = { width: 0, height: 0 };
   @Ref() private readonly view!: any;
   public async mounted() {
     this.FillWindow();
@@ -254,7 +258,7 @@ export default class Main extends Vue {
    * @param offsetX positive values for moving towards right
    * @param offsetY positive values for moving towards top
    */
-   public OnMouseMove(btn: number, ctrl: boolean, offsetX: number, offsetY: number) {
+  public OnMouseMove(btn: number, ctrl: boolean, offsetX: number, offsetY: number) {
     if (btn & 1) {
       if (ctrl)
         this.OnImageMove(offsetX, offsetY * -1);
@@ -305,6 +309,15 @@ export default class Main extends Vue {
   private get ImageAngle() { return this.imageState[2]; }
   private set ImageAngle(angle: number) { this.$set(this.imageState, 2, angle); }
   public get ImageAngleDegrees() { return ToDegrees(this.ImageAngle); }
+  private get ImageDimension(): Dimension {
+    return {
+      width: this.imgRealDimension.width * this.imageState[3],
+      height: this.imgRealDimension.height * this.imageState[3]
+    }
+  }
+
+  public get NoImage(): boolean { return this.imgRealDimension.width === 0 }
+
   @Watch('gridState')
   private OnGridUpdate() {
     this.app.SetUniform3fv('u_grid', this.gridState); // [offset_x, offset_y, cell_size_in_window_coords]
@@ -318,6 +331,7 @@ export default class Main extends Vue {
     img.src = URL.createObjectURL(blob);
     await EventWaiter(img, 'load');
 
+    this.imgRealDimension = { width: img.width, height: img.height };
     this.ImageOffset = { x: 0, y: 0 };
     this.ImageScale = this.AutoScale(img.width, img.height);
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
@@ -330,7 +344,7 @@ export default class Main extends Vue {
     this.height = window.innerHeight;
   }
   public CenterImage() {
-    this.ImageOffset = { x: 0, y: 0 };
+    this.ImageOffset = { x: this.width / 2 - this.ImageDimension.width / 2, y: this.height / 2 - this.ImageDimension.height / 2 };
   }
   public Preview() {
     DataUrlDownloader(this.view.canvas.toDataURL(), 'image.png');
