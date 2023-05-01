@@ -6,7 +6,7 @@
 </style>
 
 <script lang="ts">
-import { Component, Emit, Mixins, Model, Prop, Ref, Vue, Watch } from 'vue-property-decorator';
+import { Component, Emit, Prop, Ref, Vue, Watch } from 'vue-property-decorator';
 
 @Component
 export default class Viewport extends Vue {
@@ -14,7 +14,7 @@ export default class Viewport extends Vue {
   @Prop() public readonly height!: number;
   @Prop({ default: false }) public readonly preserveDrawingBuffer!: boolean;
   @Ref() public readonly canvas!: HTMLCanvasElement;
-  @Emit('context-ready') public ContextReady(ctx: WebGL2RenderingContext) { }
+  @Emit('context-ready') public ContextReady(_ctx: WebGL2RenderingContext) { /** Nope */ }
   private context: WebGL2RenderingContext | null = null;
 
   public get Width() { return this.width + 'px' ?? '100%'; }

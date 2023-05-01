@@ -1,5 +1,8 @@
 module.exports = {
   presets: [
-    '@vue/cli-plugin-babel/preset'
-  ]
+    /**
+     * Caused huge performance problems with the collision app
+     */
+    // '@vue/cli-plugin-babel/preset'
+  ],
 }

@@ -1,0 +1,53 @@
+module.exports = {
+  root: true,
+  env: {
+    node: true
+  },
+  plugins: ['@typescript-eslint', 'import'],
+  'extends': [
+    'plugin:vue/essential',
+    'eslint:recommended',
+    '@vue/typescript/recommended',
+    'prettier'
+  ],
+  parserOptions: {
+    ecmaVersion: 2020
+  },
+  rules: {
+    'indent': 'off',
+    '@typescript-eslint/indent': 'off',
+    "comma-dangle": "off",
+    "@typescript-eslint/comma-dangle": ["error"],
+    '@typescript-eslint/interface-name-prefix': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "no-unused-vars": "off",
+    "arrow-parens" : ["warn", "as-needed", { "requireForBlockBody": false }],
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      { "argsIgnorePattern": "^_" }
+    ],
+    "import/no-unresolved": "error",
+    "import/order": [
+      "error", 
+      {
+        "newlines-between": "always",
+        "alphabetize": {
+          "order": "asc",
+          "caseInsensitive": true
+        }
+      }
+    ]
+  },
+  "settings": {
+    "import/parsers": {
+      "@typescript-eslint/parser": [".ts", ".tsx"]
+    },
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true
+      }
+    }
+  }
+}

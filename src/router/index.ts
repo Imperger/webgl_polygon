@@ -7,24 +7,33 @@ const routes: RouteConfig[] = [
   {
     path: '/',
     name: 'Index',
-    component: () => import(/* webpackChunkName: "about" */ '@/apps/index/View.vue')
+    component: () =>
+      import(/* webpackChunkName: "index" */ '@/apps/index/AppListPage.vue')
   },
   {
     path: '/grid',
     name: 'Grid',
-    component: () => import(/* webpackChunkName: "about" */ '@/apps/grid/View.vue')
+    component: () =>
+      import(/* webpackChunkName: "grid" */ '@/apps/grid/View.vue')
+  },
+  {
+    path: '/collision',
+    name: 'Collision',
+    component: () =>
+      import(/* webpackChunkName: "collision" */ '@/apps/collision/View.vue')
   },
   {
     path: '*',
     name: 'NotFound',
-    component: () => import(/* webpackChunkName: "about" */ '../views/NotFound.vue')
+    component: () =>
+      import(/* webpackChunkName: "notfound" */ '../views/NotFound.vue')
   }
 ];
 
 const router = new VueRouter({
   mode: 'hash',
   base: process.env.BASE_URL,
-  routes,
+  routes
 });
 
 export default router;

@@ -5,15 +5,15 @@
       @mousemove.native="OnMouseMove($event.buttons, $event.ctrlKey, $event.movementX, $event.movementY)"
       @drop.native.stop.prevent="OnLoadImage($event.dataTransfer.files[0])" @dragover.native.stop.prevent="() => 0" />
     <aside>
-      <fai class="panelHelpTrigger" icon="question-circle" />
+      <fa-icon class="panelHelpTrigger" icon="question-circle" />
       <div class="panelHelpContent">
         <ul>
           <li>
-            <fai icon="mouse" />&nbsp;
+            <fa-icon icon="mouse" />&nbsp;
             <span class="accent">LMB</span> - move grid
           </li>
           <li>
-            <fai icon="mouse" />&nbsp;
+            <fa-icon icon="mouse" />&nbsp;
             <span class="accent">WHEEL</span> - scale grid
           </li>
           <li>
@@ -21,7 +21,7 @@
             <span class="accent">CTRL</span>
           </li>
           <li>
-            <fai icon="mouse" />&nbsp;
+            <fa-icon icon="mouse" />&nbsp;
             <span class="accent">WHEEL</span> + ALT - rotate image
           </li>
         </ul>
@@ -164,22 +164,23 @@ aside table {
 <script lang="ts">
 import { Component, Ref, Vue, Watch } from 'vue-property-decorator';
 
-import Viewport from '@/components/Viewport.vue';
-import { ShaderProgram } from '@/render/ShaderProgram';
-import { EventWaiter } from '@/misc/EventWaiter';
-import { DataUrlDownloader } from '@/misc/DataUrlDownloader';
-import { ToDegrees } from '@/misc/Angle';
-
-import VShader from './grid.vert';
 import FShader from './grid.frag';
-import { AcceleratedStepper } from '@/misc/AcceleratedStepper';
+import VShader from './grid.vert';
+
+import Viewport from '@/components/Viewport.vue';
+import { AcceleratedStepper } from '@/lib/misc/AcceleratedStepper';
+import { ToDegrees } from '@/lib/misc/Angle';
+import { DataUrlDownloader } from '@/lib/misc/DataUrlDownloader';
+import { EventWaiter } from '@/lib/misc/EventWaiter';
+import { ShaderProgram } from '@/lib/render/ShaderProgram';
+
 
 interface Dimension {
   width: number;
   height: number;
 }
 
-enum StateComponent { X = 0, Y = 1 };
+enum StateComponent { X = 0, Y = 1 }
 
 @Component({
   components: {
@@ -243,7 +244,7 @@ export default class Main extends Vue {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(background), this.gl.STATIC_DRAW);
 
     const posLoc = this.app.GetAttributeLocation('a_vertex');
-    const target = this.app.SetUniform1i('u_target', 0);
+    this.app.SetUniform1i('u_target', 0);
 
     this.gl.enableVertexAttribArray(posLoc);
     this.gl.vertexAttribPointer(posLoc, 2, this.gl.FLOAT, false, 0, 0);
@@ -386,7 +387,7 @@ export default class Main extends Vue {
     const halfGridSize = this.gridState[2] / 2;
 
     return componentVal + (offsetFromCellBegin < halfGridSize ? -offsetFromCellBegin : this.gridState[2] - offsetFromCellBegin)
-  };
+  }
 
   private FitImageToGrid() {
     const right = this.imageState[0] + this.ImageDimension.width;
