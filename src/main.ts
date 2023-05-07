@@ -1,5 +1,9 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faQuestionCircle, faMouse } from '@fortawesome/free-solid-svg-icons';
+import {
+  faQuestionCircle,
+  faMouse,
+  faKeyboard
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Vue from 'vue';
 
@@ -9,6 +13,7 @@ import store from './store';
 
 library.add(faQuestionCircle);
 library.add(faMouse);
+library.add(faKeyboard);
 
 Vue.component('fa-icon', FontAwesomeIcon);
 

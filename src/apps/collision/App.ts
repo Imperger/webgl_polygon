@@ -80,6 +80,8 @@ export class App {
 
   public IsEngineRenderrerEnabled = false;
 
+  private isSimulationPuased = false;
+
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private engineName: SupportedCollisionEngine
@@ -92,7 +94,7 @@ export class App {
           this.fieldDimension.Width,
           this.fieldDimension.Height
         ),
-        this.engineRenderer = new QuadTreeRenderer(this.gl)
+        (this.engineRenderer = new QuadTreeRenderer(this.gl))
       ]
     });
 
@@ -107,7 +109,7 @@ export class App {
 
     this.collisionEngine.Reset();
     this.collisionEngine = this.collisionEngineFactory.Create(engineName);
-    
+
     this.engineRenderer.Camera(this.camera);
     this.engineRenderer.ResizeView(this.resolution);
 
@@ -179,6 +181,14 @@ export class App {
     this.SwitchCollisionEngine(this.engineName);
   }
 
+  public get Pause(): boolean {
+    return this.isSimulationPuased;
+  }
+
+  public set Pause(value: boolean) {
+    this.isSimulationPuased = value;
+  }
+
   public set Camera(position: CameraPosition) {
     this.camera[CameraComponent.X] = position.X;
     this.camera[CameraComponent.Y] = position.Y;
@@ -215,19 +225,22 @@ export class App {
   }
 
   private DrawBodies(): void {
-    const visited = new Set<CircleCollider>();
-    this.bodies.forEach(circle => {
-      circle.CheckCollision(
-        this.collisionEngine
-          .FindCollisions(circle)
-          .filter(x => !visited.has(x))
-      );
+    if (!this.isSimulationPuased) {
+      const visited = new Set<CircleCollider>();
+      this.bodies.forEach(circle => {
+        circle.CheckCollision(
+          this.collisionEngine
+            .FindCollisions(circle)
+            .filter(x => !visited.has(x))
+        );
 
-      visited.add(circle);
-    });
-    this.bodies.forEach(body => body.Move(this.fieldDimension));
+        visited.add(circle);
+      });
 
-    this.collisionEngine.RecalculateBuckets();
+      this.bodies.forEach(body => body.Move(this.fieldDimension));
+
+      this.collisionEngine.RecalculateBuckets();
+    }
 
     this.bodiesShader.Use();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bodiesVbo);

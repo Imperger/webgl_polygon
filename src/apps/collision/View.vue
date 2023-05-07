@@ -1,11 +1,13 @@
 <template>
   <div class="flex">
-    <Viewport :width="width" :height="height" preserveDrawingBuffer="true" @context-ready="OnContextReady"
-      @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey, $event.altKey)"
+    <Viewport class="no-focus" tabindex="0" :width="width" :height="height" preserveDrawingBuffer="true"
+      @context-ready="OnContextReady" @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey, $event.altKey)"
       @mousemove.native="OnMouseMove($event.buttons, $event.ctrlKey, $event.movementX, $event.movementY)"
       @mousedown.native="OnMouseDown($event.button, $event.ctrlKe, $event.offsetX, $event.offsetY)"
-      @mouseup.native="OnMouseUp($event.button, $event.ctrlKe, $event.offsetX, $event.offsetY)" />
+      @mouseup.native="OnMouseUp($event.button, $event.ctrlKe, $event.offsetX, $event.offsetY)"
+      @keydown.native="OnKeyDown" />
     <aside>
+      <help-popup />
       <h3 class="control-panel-title">Collision</h3>
       <fieldset class="detection-engine-group">
         <legend>Detection engine</legend>
@@ -48,6 +50,10 @@
 <style scoped>
 @import "../../css/button.css";
 @import "../../css/input.css";
+
+.no-focus:focus {
+  outline: none;
+}
 
 .flex {
   display: flex;
@@ -102,6 +108,7 @@ import { App, CameraPosition } from './App';
 import { XY } from './collision_engines/CollisionEngine';
 import { SupportedCollisionEngine } from './collision_engines/CollisionEngineFactory';
 import DimensionEditor from './DimensionEditor.vue';
+import HelpPopup from './HelpPopup.vue';
 
 import Viewport from '@/components/Viewport.vue';
 import { MouseButton, MouseButtons } from '@/lib/misc/Dom';
@@ -111,6 +118,7 @@ import { RVec3 } from '@/lib/render/Primitives';
 @Component({
   components: {
     DimensionEditor,
+    HelpPopup,
     Viewport
   }
 })
@@ -247,6 +255,14 @@ export default class Main extends Vue {
       if (this.leftBtnPressPosition.Distance(new XY(x, y)) < 2) {
         this.app.SelectBody(x, y);
       }
+    }
+  }
+
+  public OnKeyDown(event: KeyboardEvent): void {
+    switch (event.code) {
+      case 'Space':
+        this.app.Pause = !this.app.Pause;
+        break;
     }
   }
 
