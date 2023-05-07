@@ -21,4 +21,5 @@ export interface CollisionEngine<TCollider extends CircleCollider> {
   RecalculateBuckets(): void;
   FindCollisions(object: TCollider): TCollider[];
   Reset(): void;
+  Draw(elapsed: number): void;
 }

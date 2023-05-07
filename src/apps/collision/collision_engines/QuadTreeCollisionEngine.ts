@@ -2,6 +2,7 @@ import { CircleCollider } from '../CircleCollider';
 import { MovingCircleCollider } from '../models/MovingCircleCollider';
 
 import { CollisionEngine } from './CollisionEngine';
+import { QuadTreeRenderer } from './renderers/QuadTreeRenderer';
 
 export class Boundary {
   constructor(
@@ -61,16 +62,16 @@ export class Boundary {
   }
 }
 
-class QuadNode<TCollider extends CircleCollider> {
+export class QuadNode<TCollider extends CircleCollider> {
   private static readonly MaxDepth = 8;
   private static readonly Capacity = 16;
   private static readonly CollapseRatio = 0.25;
 
   private readonly objects: TCollider[] = [];
-  private readonly nodes: QuadNode<TCollider>[] = [];
+  public readonly nodes: QuadNode<TCollider>[] = [];
 
   constructor(
-    private readonly boundary: Boundary,
+    public readonly boundary: Boundary,
     private parent: QuadNode<TCollider> | null = null,
     private isLeaf = true,
     private readonly depth: number = 1
@@ -328,8 +329,12 @@ export class QuadTreeCollisionEngine
 {
   public root: QuadNode<MovingCircleCollider>;
 
-  constructor(private readonly boundary: Boundary) {
+  constructor(
+    private readonly boundary: Boundary,
+    private renderer: QuadTreeRenderer
+  ) {
     this.root = new QuadNode(boundary);
+    this.renderer.RootFetcher = () => this.root;
   }
 
   Add(object: MovingCircleCollider): boolean {
@@ -352,5 +357,9 @@ export class QuadTreeCollisionEngine
 
   Reset(): void {
     this.root = new QuadNode(this.boundary);
+  }
+
+  Draw(elapsed: number): void {
+    this.renderer.Draw(elapsed);
   }
 }

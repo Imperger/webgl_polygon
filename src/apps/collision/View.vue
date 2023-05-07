@@ -29,6 +29,10 @@
           min="1" max="500">
       </div>
       <div class="input-group">
+        <label for="showEngineInternals" class="input-title">Show engine internals</label>
+        <input id="showEngineInternals" type="checkbox" v-model="showEngineInternals" min="1" max="500">
+      </div>
+      <div class="input-group">
         <button @click="OpenDimensionEditor">Set field dimension</button>
       </div>
       <div v-if="isDimensionEditorOpened" class="field-dimension-editor">
@@ -151,6 +155,7 @@ export default class Main extends Vue {
 
   public bodiesCount = 10000;
   public bodiesRadius = 2;
+  public showEngineInternals = false;
   public camera: CameraPosition = { X: 0, Y: 0, Zoom: 1 };
 
   public collisionEngine: SupportedCollisionEngine = 'quad-tree';
@@ -176,6 +181,11 @@ export default class Main extends Vue {
   @Watch('bodiesRadius')
   private BodiesRadiusChange(value: number, _prev: number): void {
     this.app.BodiesRadius = value;
+  }
+
+  @Watch('showEngineInternals')
+  private ShowEngineInternalsChange(value: boolean, _prev: boolean): void {
+    this.app.IsEngineRenderrerEnabled = value;
   }
 
   @Watch('camera')

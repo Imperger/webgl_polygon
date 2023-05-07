@@ -5,12 +5,15 @@ import {
   SupportedCollisionEngine
 } from './collision_engines/CollisionEngineFactory';
 import { Boundary } from './collision_engines/QuadTreeCollisionEngine';
+import { EngineRenderer } from './collision_engines/renderers/EngineRenderer';
+import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer';
 import { MovingCircleCollider } from './models/MovingCircleCollider';
 import FBodies from './shaders/bodies.frag';
 import VBodies from './shaders/bodies.vert';
 import FBorder from './shaders/border.frag';
 import VBorder from './shaders/border.vert';
 
+import { NotNull } from '@/lib/misc/NotNull';
 import { Color, Dimension, Vec2 } from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
@@ -73,6 +76,10 @@ export class App {
 
   private selectedBodies: MovingCircleCollider[] = [];
 
+  private engineRenderer!: EngineRenderer;
+
+  public IsEngineRenderrerEnabled = false;
+
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private engineName: SupportedCollisionEngine
@@ -84,7 +91,8 @@ export class App {
           0,
           this.fieldDimension.Width,
           this.fieldDimension.Height
-        )
+        ),
+        this.engineRenderer = new QuadTreeRenderer(this.gl)
       ]
     });
 
@@ -99,6 +107,9 @@ export class App {
 
     this.collisionEngine.Reset();
     this.collisionEngine = this.collisionEngineFactory.Create(engineName);
+    
+    this.engineRenderer.Camera(this.camera);
+    this.engineRenderer.ResizeView(this.resolution);
 
     this.bodies.forEach(body => this.collisionEngine.Add(body));
   }
@@ -140,6 +151,7 @@ export class App {
 
     this.bodiesShader.SetUniform2fv('u_resolution', this.resolution);
     this.borderShader.SetUniform2fv('u_resolution', this.resolution);
+    this.engineRenderer.ResizeView(this.resolution);
   }
 
   public ResizeField(dimension: Dimension): void {
@@ -174,6 +186,7 @@ export class App {
 
     this.bodiesShader.SetUniform3fv('u_cam', this.camera);
     this.borderShader.SetUniform3fv('u_cam', this.camera);
+    this.engineRenderer.Camera(this.camera);
   }
 
   public set BodiesCount(count: number) {
@@ -188,12 +201,16 @@ export class App {
     this.UpdateRadiusForBodies();
   }
 
-  public Draw(_elapsed: number): void {
+  public Draw(elapsed: number): void {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     if (this.collisionEngine !== null) {
       this.DrawBodies();
       this.DrawBorder();
+
+      if (this.IsEngineRenderrerEnabled) {
+        this.collisionEngine.Draw(elapsed);
+      }
     }
   }
 
@@ -278,6 +295,9 @@ export class App {
     this.SetupBodies();
     this.SetupBorder();
 
+    this.engineRenderer.Camera(this.camera);
+    this.engineRenderer.ResizeView(this.resolution);
+
     this.gl.disable(this.gl.DEPTH_TEST);
 
     this.gl.clearColor(1, 1, 1, 1);
@@ -285,8 +305,8 @@ export class App {
   }
 
   private SetupBodies(): void {
-    this.bodiesVbo = this.gl.createBuffer() ?? this.SetupError();
-    this.bodiesVao = this.gl.createVertexArray() ?? this.SetupError();
+    this.bodiesVbo = this.gl.createBuffer() ?? NotNull();
+    this.bodiesVao = this.gl.createVertexArray() ?? NotNull();
 
     this.bodiesShader = new ShaderProgram(this.gl);
     this.bodiesShader.Attach(this.gl.FRAGMENT_SHADER, FBodies);
@@ -341,8 +361,8 @@ export class App {
   }
 
   private SetupBorder(): void {
-    this.borderVbo = this.gl.createBuffer() ?? this.SetupError();
-    this.borderVao = this.gl.createVertexArray() ?? this.SetupError();
+    this.borderVbo = this.gl.createBuffer() ?? NotNull();
+    this.borderVao = this.gl.createVertexArray() ?? NotNull();
 
     this.borderShader = new ShaderProgram(this.gl);
     this.borderShader.Attach(this.gl.FRAGMENT_SHADER, FBorder);
@@ -461,9 +481,5 @@ export class App {
       dimension.Width < this.fieldDimension.Width ||
       dimension.Height < this.fieldDimension.Height
     );
-  }
-
-  private SetupError(): never {
-    throw new Error('Setup error');
   }
 }

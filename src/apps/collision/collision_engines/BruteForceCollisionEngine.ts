@@ -43,4 +43,8 @@ export class BruteForceCollisionEngine
       .slice(idx + 1)
       .filter(obj => obj !== object && obj.IsCollide(object));
   }
+
+  Draw(_elapsed: number): void {
+    // Nothing to draw
+  }
 }
