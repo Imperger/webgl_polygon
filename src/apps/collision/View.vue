@@ -35,24 +35,8 @@
       <div class="input-group">
         <button @click="OpenDimensionEditor">Set field dimension</button>
       </div>
-      <div v-if="isDimensionEditorOpened" class="field-dimension-editor">
-        <div class="input-group">
-          <span :class="{ 'caption-validation-error': IsInvalidFIeldDimensionValue(fieldDimension.Width) }"
-            class="input-title">W</span>
-          <input type="number" :class="{ 'input-validation-error': IsInvalidFIeldDimensionValue(fieldDimension.Width) }"
-            v-model.number="fieldDimension.Width" min="10" max="1000000">
-        </div>
-        <div class="input-group">
-          <span :class="{ 'caption-validation-error': IsInvalidFIeldDimensionValue(fieldDimension.Height) }"
-            class="input-title">H</span>
-          <input type="number" :class="{ 'input-validation-error': IsInvalidFIeldDimensionValue(fieldDimension.Height) }"
-            v-model.number="fieldDimension.Height" min="10" max="1000000">
-        </div>
-        <div class="flex">
-          <button @click="ChangeFieldDimension">Apply</button>
-          <button @click="CloseDimensionEditor">Cancel</button>
-        </div>
-      </div>
+      <dimension-editor v-if="isDimensionEditorOpened" :dimension="fieldDimension" @apply="ChangeFieldDimension"
+        @cancel="CloseDimensionEditor" />
       <div class="fps-counter">
         <span>FPS: </span>
         <span class="fps-counter-value">{{ fps }}</span>
@@ -83,22 +67,6 @@ aside {
   text-align: center;
 }
 
-.field-dimension-editor {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, 0);
-  top: 10px;
-  width: 80%;
-  padding: 10px;
-  background-color: #128dd4;
-}
-
-.field-dimension-editor .input-title {
-  display: inline-block;
-  width: 17px;
-}
-
-
 .input-group {
   margin-bottom: 5px;
 }
@@ -106,8 +74,6 @@ aside {
 .input-title {
   margin-right: 5px;
 }
-
-
 
 .detection-engine-group {
   border-color: black;
@@ -135,6 +101,7 @@ import { Component, Vue, Watch } from 'vue-property-decorator';
 import { App, CameraPosition } from './App';
 import { XY } from './collision_engines/CollisionEngine';
 import { SupportedCollisionEngine } from './collision_engines/CollisionEngineFactory';
+import DimensionEditor from './DimensionEditor.vue';
 
 import Viewport from '@/components/Viewport.vue';
 import { MouseButton, MouseButtons } from '@/lib/misc/Dom';
@@ -143,6 +110,7 @@ import { RVec3 } from '@/lib/render/Primitives';
 
 @Component({
   components: {
+    DimensionEditor,
     Viewport
   }
 })
@@ -282,7 +250,9 @@ export default class Main extends Vue {
     }
   }
 
-  public ChangeFieldDimension(): void {
+  public ChangeFieldDimension(dimension: Dimension): void {
+    this.fieldDimension = dimension;
+
     this.app.ResizeField(this.fieldDimension);
 
     this.CloseDimensionEditor();
@@ -309,10 +279,6 @@ export default class Main extends Vue {
 
   public get isInvalidBodiesRadius() {
     return this.bodiesRadius < 1 || this.bodiesRadius > 500;
-  }
-
-  public IsInvalidFIeldDimensionValue(value: number) {
-    return value < 10 || value > 100000;
   }
 }
 </script>
