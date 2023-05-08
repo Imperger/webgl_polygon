@@ -58,19 +58,17 @@ export class MovingCircleCollider extends CircleCollider {
       this.Color({R: 0.392, G:0.867, B: 0.09 });
     } */
 
-    const MaxVelocity = 1;
+    const MaxVelocity = 0.6;
 
-    if (this.velocity.X > MaxVelocity) {
-      this.velocity.X = MaxVelocity;
-    } else if (this.velocity.X < -MaxVelocity) {
-      this.velocity.X = -MaxVelocity;
-    }
+    const velocity = Math.sqrt(this.velocity.X**2 + this.velocity.Y**2);
 
-    if (this.velocity.Y > MaxVelocity) {
-      this.velocity.Y = MaxVelocity;
-    } else if (this.velocity.Y < -MaxVelocity) {
-      this.velocity.Y = -MaxVelocity;
+    if (velocity > MaxVelocity) {
+      const normalizeFactor = MaxVelocity / velocity;
+
+      this.velocity.X *= normalizeFactor;
+      this.velocity.Y *= normalizeFactor;
     }
+    
 
     if (this.Center.X - this.Radius + this.velocity.X < 0) {
       this.Center = new XY(this.Radius, this.Center.Y);
