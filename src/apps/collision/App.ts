@@ -80,7 +80,7 @@ export class App {
 
   public IsEngineRenderrerEnabled = false;
 
-  private isSimulationPuased = false;
+  private isSimulationPaused = false;
 
   constructor(
     private readonly gl: WebGL2RenderingContext,
@@ -182,11 +182,11 @@ export class App {
   }
 
   public get Pause(): boolean {
-    return this.isSimulationPuased;
+    return this.isSimulationPaused;
   }
 
   public set Pause(value: boolean) {
-    this.isSimulationPuased = value;
+    this.isSimulationPaused = value;
   }
 
   public set Camera(position: CameraPosition) {
@@ -225,7 +225,7 @@ export class App {
   }
 
   private DrawBodies(): void {
-    if (!this.isSimulationPuased) {
+    if (!this.isSimulationPaused) {
       const visited = new Set<CircleCollider>();
       this.bodies.forEach(circle => {
         circle.CheckCollision(
