@@ -8,18 +8,23 @@ class CollisionDetector {
 }
 
 export class CircleCollider {
-  constructor(private center: DataDescriptor, public Radius: number) {}
+  private cachedCenter!: XY;
+
+  constructor(private center: DataDescriptor, public Radius: number) {
+    this.cachedCenter = new XY(
+      this.center.buffer[this.center.offset], 
+      this.center.buffer[this.center.offset + 1]);
+  }
 
   get Center(): XY {
-    return new XY(
-      this.center.buffer[this.center.offset],
-      this.center.buffer[this.center.offset + 1]
-    );
+    return this.cachedCenter;
   }
 
   set Center(center: XY) {
     this.center.buffer[this.center.offset] = center.X;
     this.center.buffer[this.center.offset + 1] = center.Y;
+
+    this.cachedCenter = new XY(center.X, center.Y);
   }
 
   get CenterDescriptor(): DataDescriptor {
