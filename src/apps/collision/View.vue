@@ -223,7 +223,7 @@ export default class Main extends Vue {
   public OnWheel(offset: number, _ctrl: boolean, _alt: boolean) {
     const dir = -offset / Math.abs(offset);
     const zoom = this.camera.Zoom;
-    const step = dir * 0.1;
+    const step = dir * (dir > 0 ? 0.1 : 0.2);
 
     if (zoom + step > 0.5 && zoom + step < 10) {
       this.camera.Zoom = zoom + step;
