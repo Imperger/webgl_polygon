@@ -54,7 +54,7 @@ export class Boundary {
     }
 
     const cornerDistance_sq =
-      (circleDistanceX - this.width / 2) ** 2 + 
+      (circleDistanceX - this.width / 2) ** 2 +
       (circleDistanceY - this.height / 2) ** 2;
 
     return cornerDistance_sq <= circle.Radius ** 2;

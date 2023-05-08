@@ -1,3 +1,4 @@
+import { BorderRenderer } from './border/BorderRenderer';
 import { CircleCollider } from './CircleCollider';
 import { CollisionEngine, XY } from './collision_engines/CollisionEngine';
 import {
@@ -10,11 +11,9 @@ import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer
 import { MovingCircleCollider } from './models/MovingCircleCollider';
 import FBodies from './shaders/bodies.frag';
 import VBodies from './shaders/bodies.vert';
-import FBorder from './shaders/border.frag';
-import VBorder from './shaders/border.vert';
 
 import { NotNull } from '@/lib/misc/NotNull';
-import { Color, Dimension, Vec2 } from '@/lib/misc/Primitives';
+import { Dimension } from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
 import { ShaderProgram } from '@/lib/render/ShaderProgram';
@@ -63,13 +62,7 @@ export class App {
     selected: [0, 0, 1]
   };
 
-  private borderVbo!: WebGLBuffer;
-  private borderVao!: WebGLVertexArrayObject;
-  private borderShader!: ShaderProgram;
-  private borderAttributes!: Float32Array;
-  private readonly borderColorConfig = {
-    default: { R: 0.5, G: 0.5, B: 0.5 }
-  };
+  private border!: BorderRenderer;
 
   private collisionEngine!: CollisionEngine<MovingCircleCollider>;
   private collisionEngineFactory!: CollisionEngineFactory;
@@ -99,6 +92,8 @@ export class App {
     });
 
     this.collisionEngine = this.collisionEngineFactory.Create(engineName);
+
+    this.border = new BorderRenderer(gl, this.fieldDimension);
 
     this.Setup();
     (window as any)['app'] = this;
@@ -152,7 +147,7 @@ export class App {
     this.resolution[ResolutionComponent.Height] = dimension.Height;
 
     this.bodiesShader.SetUniform2fv('u_resolution', this.resolution);
-    this.borderShader.SetUniform2fv('u_resolution', this.resolution);
+    this.border.ResizeView(dimension);
     this.engineRenderer.ResizeView(this.resolution);
   }
 
@@ -171,12 +166,7 @@ export class App {
 
     this.fieldDimension = { ...dimension };
 
-    this.BuildBorder();
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.borderAttributes,
-      this.gl.DYNAMIC_DRAW
-    );
+    this.border.Dimension(this.fieldDimension);
 
     this.SwitchCollisionEngine(this.engineName);
   }
@@ -195,7 +185,7 @@ export class App {
     this.camera[CameraComponent.Zoom] = position.Zoom;
 
     this.bodiesShader.SetUniform3fv('u_cam', this.camera);
-    this.borderShader.SetUniform3fv('u_cam', this.camera);
+    this.border.Camera(this.camera);
     this.engineRenderer.Camera(this.camera);
   }
 
@@ -216,7 +206,7 @@ export class App {
 
     if (this.collisionEngine !== null) {
       this.DrawBodies();
-      this.DrawBorder();
+      this.border.Draw();
 
       if (this.IsEngineRenderrerEnabled) {
         this.collisionEngine.Draw(elapsed);
@@ -251,18 +241,6 @@ export class App {
     );
     this.gl.bindVertexArray(this.bodiesVao);
     this.gl.drawArrays(this.gl.POINTS, 0, this.bodiesCount);
-  }
-
-  private DrawBorder(): void {
-    this.borderShader.Use();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.borderVbo);
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.borderAttributes,
-      this.gl.DYNAMIC_DRAW
-    );
-    this.gl.bindVertexArray(this.borderVao);
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.borderAttributes.length / 5);
   }
 
   private BuildBodies(): void {
@@ -306,7 +284,6 @@ export class App {
 
   private Setup(): void {
     this.SetupBodies();
-    this.SetupBorder();
 
     this.engineRenderer.Camera(this.camera);
     this.engineRenderer.ResizeView(this.resolution);
@@ -371,122 +348,6 @@ export class App {
     );
 
     this.gl.bindVertexArray(null);
-  }
-
-  private SetupBorder(): void {
-    this.borderVbo = this.gl.createBuffer() ?? NotNull();
-    this.borderVao = this.gl.createVertexArray() ?? NotNull();
-
-    this.borderShader = new ShaderProgram(this.gl);
-    this.borderShader.Attach(this.gl.FRAGMENT_SHADER, FBorder);
-    this.borderShader.Attach(this.gl.VERTEX_SHADER, VBorder);
-    this.borderShader.Link();
-    this.borderShader.Use();
-
-    this.SetupBorderAttributes();
-
-    this.borderShader.SetUniform3fv('u_cam', this.camera);
-    this.borderShader.SetUniform2fv('u_resolution', this.resolution);
-  }
-
-  private SetupBorderAttributes(): void {
-    const FloatSize = Float32Array.BYTES_PER_ELEMENT;
-    const ComponentsCount = 5;
-
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.borderVbo);
-    this.BuildBorder();
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.borderAttributes,
-      this.gl.DYNAMIC_DRAW
-    );
-
-    this.gl.bindVertexArray(this.borderVao);
-
-    const posLoc = this.borderShader.GetAttributeLocation('a_vertex');
-    this.gl.enableVertexAttribArray(posLoc);
-    this.gl.vertexAttribPointer(
-      posLoc,
-      2,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      0
-    );
-
-    const colorLoc = this.borderShader.GetAttributeLocation('a_color');
-    this.gl.enableVertexAttribArray(colorLoc);
-    this.gl.vertexAttribPointer(
-      colorLoc,
-      3,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      FloatSize * 2
-    );
-
-    this.gl.bindVertexArray(null);
-  }
-
-  private BuildBorder(): void {
-    const BorderWidth = 2;
-    // Left, Top, Right, Bottom
-    this.borderAttributes = new Float32Array([
-      ...this.Rectangle(
-        { X: -BorderWidth, Y: 0 },
-        { Width: BorderWidth, Height: this.fieldDimension.Height },
-        this.borderColorConfig.default
-      ),
-      ...this.Rectangle(
-        { X: -BorderWidth, Y: this.fieldDimension.Height },
-        {
-          Width: this.fieldDimension.Width + 2 * BorderWidth,
-          Height: BorderWidth
-        },
-        this.borderColorConfig.default
-      ),
-      ...this.Rectangle(
-        { X: this.fieldDimension.Width, Y: 0 },
-        { Width: BorderWidth, Height: this.fieldDimension.Height },
-        this.borderColorConfig.default
-      ),
-      ...this.Rectangle(
-        { X: -BorderWidth, Y: -BorderWidth },
-        {
-          Width: this.fieldDimension.Width + 2 * BorderWidth,
-          Height: BorderWidth
-        },
-        this.borderColorConfig.default
-      )
-    ]);
-  }
-
-  private Rectangle(p0: Vec2, dimension: Dimension, color: Color): number[] {
-    const leftBottom = [p0.X, p0.Y, color.R, color.G, color.B];
-    const leftTop = [p0.X, p0.Y + dimension.Height, color.R, color.G, color.B];
-    const rightTop = [
-      p0.X + dimension.Width,
-      p0.Y + dimension.Height,
-      color.R,
-      color.G,
-      color.B
-    ];
-    const rightBottom = [
-      p0.X + dimension.Width,
-      p0.Y,
-      color.R,
-      color.G,
-      color.B
-    ];
-
-    return [
-      ...leftBottom,
-      ...rightTop,
-      ...leftTop,
-      ...leftBottom,
-      ...rightBottom,
-      ...rightTop
-    ];
   }
 
   private IsDimensionShrink(dimension: Dimension): boolean {
