@@ -15,26 +15,24 @@ export class MovingCircleCollider extends CircleCollider {
     return this.velocity;
   }
 
-  CheckCollision(colliders: MovingCircleCollider[], elapsed: number): void {
-    colliders.forEach(collider => {
-      const angle = Math.atan2(
-        collider.Center.Y - this.Center.Y,
-        collider.Center.X - this.Center.X
-      );
+  CheckCollision(collider: MovingCircleCollider, elapsed: number): void {
+    const angle = Math.atan2(
+      collider.Center.Y - this.Center.Y,
+      collider.Center.X - this.Center.X
+    );
 
-      const targetX = this.Center.X + Math.cos(angle) * 2 * this.Radius;
-      const targetY = this.Center.Y + Math.sin(angle) * 2 * this.Radius;
+    const targetX = this.Center.X + Math.cos(angle) * 2 * this.Radius;
+    const targetY = this.Center.Y + Math.sin(angle) * 2 * this.Radius;
 
-      const ax = targetX - collider.Center.X;
-      const ay = targetY - collider.Center.Y;
+    const ax = targetX - collider.Center.X;
+    const ay = targetY - collider.Center.Y;
 
-      const velocityAmplifier = 1000 / elapsed;
-      this.velocity.X -= ax * velocityAmplifier;
-      this.velocity.Y -= ay * velocityAmplifier;
+    const velocityAmplifier = 1000 / elapsed;
+    this.velocity.X -= ax * velocityAmplifier;
+    this.velocity.Y -= ay * velocityAmplifier;
 
-      collider.velocity.X += ax * velocityAmplifier;
-      collider.velocity.Y += ay * velocityAmplifier;
-    });
+    collider.velocity.X += ax * velocityAmplifier;
+    collider.velocity.Y += ay * velocityAmplifier;
   }
 
   Move(boundaryField: Dimension, elapsed: number): void {

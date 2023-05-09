@@ -28,20 +28,23 @@ export class BruteForceCollisionEngine
     return false;
   }
 
-  RecalculateBuckets(): void {
-    // No buckets no problem
+  ForEachCollided(
+    handler: (a: MovingCircleCollider, b: MovingCircleCollider) => void
+  ): void {
+    for (let aIdx = 0; aIdx < this.objects.length; ++aIdx) {
+      for (let bIdx = aIdx + 1; bIdx < this.objects.length; ++bIdx) {
+        const a = this.objects[aIdx];
+        const b = this.objects[bIdx];
+
+        if (a.IsCollide(b)) {
+          handler(a, b);
+        }
+      }
+    }
   }
 
-  FindCollisions(object: MovingCircleCollider): MovingCircleCollider[] {
-    const idx = this.objects.indexOf(object);
-
-    if (idx === -1) {
-      return [];
-    }
-
-    return this.objects
-      .slice(idx + 1)
-      .filter(obj => obj !== object && obj.IsCollide(object));
+  RecalculateBuckets(): void {
+    // No buckets no problem
   }
 
   Draw(_elapsed: number): void {

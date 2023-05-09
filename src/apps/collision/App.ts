@@ -1,5 +1,4 @@
 import { BorderRenderer } from './border/BorderRenderer';
-import { CircleCollider } from './CircleCollider';
 import { CollisionEngine, XY } from './collision_engines/CollisionEngine';
 import {
   CollisionEngineFactory,
@@ -216,17 +215,9 @@ export class App {
 
   private DrawBodies(elapsed: number): void {
     if (!this.isSimulationPaused) {
-      const visited = new Set<CircleCollider>();
-      this.bodies.forEach(body => {
-        body.CheckCollision(
-          this.collisionEngine
-            .FindCollisions(body)
-            .filter(x => !visited.has(x)),
-          elapsed
-        );
-
-        visited.add(body);
-      });
+      this.collisionEngine.ForEachCollided((a, b) =>
+        a.CheckCollision(b, elapsed)
+      );
 
       this.bodies.forEach(body => body.Move(this.fieldDimension, elapsed));
 

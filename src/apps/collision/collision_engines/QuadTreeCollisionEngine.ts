@@ -343,6 +343,24 @@ export class QuadNode<TCollider extends CircleCollider> {
       return node.nodes.reduce((acc, x) => acc + QuadNode.Size(x), 0);
     }
   }
+
+  public static CollectLeafs<TCollider extends CircleCollider>(
+    node: QuadNode<TCollider>
+  ): QuadNode<TCollider>[] {
+    if (node.isLeaf) {
+      return [node];
+    } else {
+      return node.nodes.flatMap(node => QuadNode.CollectLeafs(node));
+    }
+  }
+
+  public static *ObjectIterator<TCollider extends CircleCollider>(
+    node: QuadNode<TCollider>
+  ) {
+    for (const object of node.objects) {
+      yield object;
+    }
+  }
 }
 
 export class QuadTreeCollisionEngine
@@ -374,6 +392,27 @@ export class QuadTreeCollisionEngine
     const nodes = this.root.FindNodeContaining(object);
 
     return nodes.flatMap(node => node.FilterCollided(object));
+  }
+
+  ForEachCollided(
+    handler: (a: MovingCircleCollider, b: MovingCircleCollider) => void
+  ): void {
+    const leafs = QuadNode.CollectLeafs(this.root);
+
+    leafs.forEach(leaf => {
+      const bodies = [...QuadNode.ObjectIterator(leaf)];
+
+      for (let aIdx = 0; aIdx < bodies.length; ++aIdx) {
+        for (let bIdx = aIdx + 1; bIdx < bodies.length; ++bIdx) {
+          const a = bodies[aIdx];
+          const b = bodies[bIdx];
+
+          if (a.IsCollide(b)) {
+            handler(a, b);
+          }
+        }
+      }
+    });
   }
 
   Reset(): void {

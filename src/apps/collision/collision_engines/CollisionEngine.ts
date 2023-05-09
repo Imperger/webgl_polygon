@@ -16,7 +16,7 @@ export interface CollisionEngine<TCollider extends CircleCollider> {
   // Returns true if found
   Remove(object: TCollider): boolean;
   RecalculateBuckets(): void;
-  FindCollisions(object: TCollider): TCollider[];
+  ForEachCollided(handler: (a: TCollider, b: TCollider) => void): void;
   Reset(): void;
   Draw(elapsed: number): void;
 }
