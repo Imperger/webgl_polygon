@@ -59,6 +59,26 @@ export class Boundary {
 
     return cornerDistance_sq <= circle.Radius ** 2;
   }
+
+  public IsContain(circle: CircleCollider): boolean {
+    if (circle.Center.X - circle.Radius < this.x) {
+      return false;
+    }
+
+    if (circle.Center.X + circle.Radius > this.Right) {
+      return false;
+    }
+
+    if (circle.Center.Y - circle.Radius < this.y) {
+      return false;
+    }
+
+    if (circle.Center.Y + circle.Radius > this.Top) {
+      return false;
+    }
+
+    return true;
+  }
 }
 
 export class QuadNode<TCollider extends CircleCollider> {
@@ -126,22 +146,24 @@ export class QuadNode<TCollider extends CircleCollider> {
 
   RecalculateBucket(root: QuadNode<TCollider>): void {
     if (this.isLeaf) {
-      const nonIntersect: TCollider[] = [];
+      const outOfNode: TCollider[] = [];
       for (let n = 0, step = 1; n < this.objects.length; n += step) {
         const obj = this.objects[n];
         if (!this.boundary.IsIntersect(obj)) {
           this.objects.splice(n, 1);
 
-          nonIntersect.push(obj);
+          outOfNode.push(obj);
 
           step = 0;
+        } else if (!this.boundary.IsContain(obj)) {
+          outOfNode.push(obj);
+          step = 1;
         } else {
           step = 1;
         }
       }
 
-      // FIXME Currently we temporarily block splitting
-      nonIntersect.forEach(obj => root.Add(obj, true));
+      outOfNode.forEach(obj => root.Add(obj, true));
 
       if (this.NeedCollapse) {
         this.Collapse();
