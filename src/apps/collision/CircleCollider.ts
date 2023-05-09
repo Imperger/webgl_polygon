@@ -12,8 +12,9 @@ export class CircleCollider {
 
   constructor(private center: DataDescriptor, public Radius: number) {
     this.cachedCenter = new XY(
-      this.center.buffer[this.center.offset], 
-      this.center.buffer[this.center.offset + 1]);
+      this.center.buffer[this.center.offset],
+      this.center.buffer[this.center.offset + 1]
+    );
   }
 
   get Center(): XY {

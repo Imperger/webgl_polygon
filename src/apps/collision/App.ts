@@ -205,7 +205,7 @@ export class App {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     if (this.collisionEngine !== null) {
-      this.DrawBodies();
+      this.DrawBodies(elapsed);
       this.border.Draw();
 
       if (this.IsEngineRenderrerEnabled) {
@@ -214,20 +214,21 @@ export class App {
     }
   }
 
-  private DrawBodies(): void {
+  private DrawBodies(elapsed: number): void {
     if (!this.isSimulationPaused) {
       const visited = new Set<CircleCollider>();
-      this.bodies.forEach(circle => {
-        circle.CheckCollision(
+      this.bodies.forEach(body => {
+        body.CheckCollision(
           this.collisionEngine
-            .FindCollisions(circle)
-            .filter(x => !visited.has(x))
+            .FindCollisions(body)
+            .filter(x => !visited.has(x)),
+          elapsed
         );
 
-        visited.add(circle);
+        visited.add(body);
       });
 
-      this.bodies.forEach(body => body.Move(this.fieldDimension));
+      this.bodies.forEach(body => body.Move(this.fieldDimension, elapsed));
 
       this.collisionEngine.RecalculateBuckets();
     }
@@ -269,7 +270,7 @@ export class App {
       const object = new MovingCircleCollider(
         { buffer: this.bodiesAttributes, offset: n * ComponentsCount },
         this.bodyRadius,
-        { X: RandomFloat(-3, 3), Y: RandomFloat(-3, 3) }
+        { X: RandomFloat(-100, 100), Y: RandomFloat(-100, 100) }
       );
 
       this.bodies.push(object);
