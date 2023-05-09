@@ -189,6 +189,7 @@ export default class Main extends Vue {
     this.app = new App(ctx, this.collisionEngine);
     this.app.BodiesCount = this.bodiesCount;
     this.app.BodiesRadius = this.bodiesRadius;
+    this.app.ResizeField(this.fieldDimension);
 
     this.OnResize();
   }
