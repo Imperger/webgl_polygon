@@ -177,7 +177,7 @@ export default class Main extends Vue {
     window.requestAnimationFrame(() => {
       this.lastDrawCall = Date.now();
 
-      this.Draw(0);
+      this.Draw(1);
     });
   }
 
