@@ -96,21 +96,29 @@ export class QuadNode<TCollider extends CircleCollider> {
     private readonly depth: number = 1
   ) {}
 
-  Add(obj: TCollider, nosplit = false): boolean {
+  Add(
+    obj: TCollider,
+    leafs: Set<QuadNode<TCollider>>,
+    nosplit = false
+  ): boolean {
     if (!this.boundary.IsIntersect(obj)) {
       return false;
     }
 
     if (this.IsLeaf) {
       if (!nosplit && this.NeedSplit) {
-        this.Split();
+        this.Split(leafs);
 
-        return this.nodes.map(node => node.Add(obj, nosplit)).some(x => x);
+        return this.nodes
+          .map(node => node.Add(obj, leafs, nosplit))
+          .some(x => x);
       } else if (!this.objects.includes(obj)) {
         this.objects.push(obj);
       }
     } else {
-      return this.nodes.map(node => node.Add(obj, nosplit)).some(x => x);
+      return this.nodes
+        .map(node => node.Add(obj, leafs, nosplit))
+        .some(x => x);
     }
 
     return true;
@@ -144,7 +152,10 @@ export class QuadNode<TCollider extends CircleCollider> {
     );
   }
 
-  RecalculateBucket(root: QuadNode<TCollider>): void {
+  RecalculateBucket(
+    root: QuadNode<TCollider>,
+    leafs: Set<QuadNode<TCollider>>
+  ): void {
     if (this.isLeaf) {
       const outOfNode: TCollider[] = [];
       for (let n = 0, step = 1; n < this.objects.length; n += step) {
@@ -163,22 +174,22 @@ export class QuadNode<TCollider extends CircleCollider> {
         }
       }
 
-      outOfNode.forEach(obj => root.Add(obj, true));
+      outOfNode.forEach(obj => root.Add(obj, leafs, true));
 
       if (this.NeedCollapse) {
-        this.Collapse();
+        this.Collapse(leafs);
 
-        this.parent?.RecalculateBucket(root);
+        this.parent?.RecalculateBucket(root, leafs);
       }
     } else {
-      this.nodes.forEach(node => node.RecalculateBucket(root));
+      this.nodes.forEach(node => node.RecalculateBucket(root, leafs));
     }
 
     if (this === root) {
       const processLeafs = (node: QuadNode<TCollider>) => {
         if (node.isLeaf) {
           if (node.NeedSplit) {
-            node.Split();
+            node.Split(leafs);
           }
         } else {
           node.nodes.forEach(node => processLeafs(node));
@@ -189,7 +200,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     }
   }
 
-  Remove(obj: TCollider): boolean {
+  Remove(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
     const nodes = this.FindNodeContaining(obj);
 
     if (nodes.length === 0) {
@@ -209,7 +220,7 @@ export class QuadNode<TCollider extends CircleCollider> {
         collapseCandidate && collapseCandidate.NeedCollapse;
         collapseCandidate = collapseCandidate.parent
       ) {
-        collapseCandidate.Collapse();
+        collapseCandidate.Collapse(leafs);
       }
     }
 
@@ -241,7 +252,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     );
   }
 
-  private Split() {
+  private Split(leafs: Set<QuadNode<TCollider>>) {
     const halfWidth = this.boundary.Width / 2;
     const halfHeight = this.boundary.Height / 2;
 
@@ -294,7 +305,9 @@ export class QuadNode<TCollider extends CircleCollider> {
     );
 
     this.objects.forEach(obj => {
-      const added = this.nodes.map(node => node.Add(obj)).some(x => x);
+      const added = this.nodes
+        .map(node => node.Add(obj, leafs))
+        .some(x => x);
 
       if (!added) {
         throw new Error(
@@ -305,10 +318,13 @@ export class QuadNode<TCollider extends CircleCollider> {
 
     this.objects.splice(0);
     this.isLeaf = false;
+
+    leafs.delete(this);
+    this.nodes.forEach(leaf => leafs.add(leaf));
   }
 
   // Can be called only on leaf node with parent
-  private Collapse(): void {
+  private Collapse(leafs: Set<QuadNode<TCollider>>): void {
     if (!this.parent) {
       throw new Error("Can't collapse a root node");
     }
@@ -322,6 +338,7 @@ export class QuadNode<TCollider extends CircleCollider> {
       if (node.IsLeaf) {
         node.objects.forEach(obj => receiver.add(obj));
         node.objects.splice(0);
+        leafs.delete(node);
       } else {
         node.nodes.forEach(node => gather(node));
       }
@@ -332,6 +349,8 @@ export class QuadNode<TCollider extends CircleCollider> {
     this.parent.nodes.splice(0);
     this.parent.objects.push(...receiver);
     this.parent.isLeaf = true;
+
+    leafs.add(this.parent);
   }
 
   public static Size<TCollider extends CircleCollider>(
@@ -341,16 +360,6 @@ export class QuadNode<TCollider extends CircleCollider> {
       return node.objects.length;
     } else {
       return node.nodes.reduce((acc, x) => acc + QuadNode.Size(x), 0);
-    }
-  }
-
-  public static CollectLeafs<TCollider extends CircleCollider>(
-    node: QuadNode<TCollider>
-  ): QuadNode<TCollider>[] {
-    if (node.isLeaf) {
-      return [node];
-    } else {
-      return node.nodes.flatMap(node => QuadNode.CollectLeafs(node));
     }
   }
 
@@ -367,6 +376,7 @@ export class QuadTreeCollisionEngine
   implements CollisionEngine<MovingCircleCollider>
 {
   public root: QuadNode<MovingCircleCollider>;
+  private readonly leafs = new Set<QuadNode<MovingCircleCollider>>();
 
   constructor(
     private readonly boundary: Boundary,
@@ -377,15 +387,15 @@ export class QuadTreeCollisionEngine
   }
 
   Add(object: MovingCircleCollider): boolean {
-    return this.root.Add(object);
+    return this.root.Add(object, this.leafs);
   }
 
   Remove(object: MovingCircleCollider): boolean {
-    return this.root.Remove(object);
+    return this.root.Remove(object, this.leafs);
   }
 
   RecalculateBuckets(): void {
-    this.root.RecalculateBucket(this.root);
+    this.root.RecalculateBucket(this.root, this.leafs);
   }
 
   FindCollisions(object: MovingCircleCollider): MovingCircleCollider[] {
@@ -397,9 +407,7 @@ export class QuadTreeCollisionEngine
   ForEachCollided(
     handler: (a: MovingCircleCollider, b: MovingCircleCollider) => void
   ): void {
-    const leafs = QuadNode.CollectLeafs(this.root);
-
-    leafs.forEach(leaf => {
+    this.leafs.forEach(leaf => {
       const bodies = [...QuadNode.ObjectIterator(leaf)];
 
       for (let aIdx = 0; aIdx < bodies.length; ++aIdx) {
