@@ -174,10 +174,9 @@ export default class Main extends Vue {
 
     window.addEventListener('resize', this.OnResize);
 
+    this.lastDrawCall = Date.now();
     window.requestAnimationFrame(() => {
-      this.lastDrawCall = Date.now();
-
-      this.Draw(1);
+      this.Draw(Date.now() - this.lastDrawCall);
     });
   }
 
