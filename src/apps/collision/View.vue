@@ -143,6 +143,7 @@ export default class Main extends Vue {
   private leftBtnPressPosition!: XY;
 
   private app!: App;
+  private isUnmounted!: boolean;
 
   @Watch('collisionEngine')
   private CollisionEngineChange(value: SupportedCollisionEngine, _prev: SupportedCollisionEngine): void {
@@ -170,6 +171,8 @@ export default class Main extends Vue {
   }
 
   public async mounted() {
+    this.isUnmounted = false;
+
     this.leftBtnPressPosition = new XY(0, 0);
 
     window.addEventListener('resize', this.OnResize);
@@ -181,7 +184,8 @@ export default class Main extends Vue {
   }
 
   public beforeDestroy() {
-    window.removeEventListener('resize', this.OnResize)
+    this.isUnmounted = true;
+    window.removeEventListener('resize', this.OnResize);
   }
 
   public OnContextReady(ctx: WebGL2RenderingContext) {
@@ -196,6 +200,10 @@ export default class Main extends Vue {
   private lastDrawCall = 0;
 
   private Draw(elapsed: number) {
+    if (this.isUnmounted) {
+      return;
+    }
+
     this.TrackFps();
 
     this.app.Draw(elapsed);
