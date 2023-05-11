@@ -96,29 +96,21 @@ export class QuadNode<TCollider extends CircleCollider> {
     private readonly depth: number = 1
   ) {}
 
-  Add(
-    obj: TCollider,
-    leafs: Set<QuadNode<TCollider>>,
-    nosplit = false
-  ): boolean {
+  Add(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
     if (!this.boundary.IsIntersect(obj)) {
       return false;
     }
 
     if (this.IsLeaf) {
-      if (!nosplit && this.NeedSplit) {
+      if (this.NeedSplit) {
         this.Split(leafs);
 
-        return this.nodes
-          .map(node => node.Add(obj, leafs, nosplit))
-          .some(x => x);
+        return this.nodes.map(node => node.Add(obj, leafs)).some(x => x);
       } else if (!this.objects.includes(obj)) {
         this.objects.push(obj);
       }
     } else {
-      return this.nodes
-        .map(node => node.Add(obj, leafs, nosplit))
-        .some(x => x);
+      return this.nodes.map(node => node.Add(obj, leafs)).some(x => x);
     }
 
     return true;
@@ -156,53 +148,34 @@ export class QuadNode<TCollider extends CircleCollider> {
     root: QuadNode<TCollider>,
     leafs: Set<QuadNode<TCollider>>
   ): void {
-    if (this.isLeaf) {
-      const outOfNode: TCollider[] = [];
-      for (let n = 0, step = 1; n < this.objects.length; n += step) {
-        const obj = this.objects[n];
-        if (!this.boundary.IsIntersect(obj)) {
-          this.objects.splice(n, 1);
+    const outOfNode: TCollider[] = [];
+
+    leafs.forEach(leaf => {
+      for (let n = 0, step = 1; n < leaf.objects.length; n += step) {
+        const obj = leaf.objects[n];
+        if (!leaf.boundary.IsIntersect(obj)) {
+          leaf.RemoveFromNodes(obj, [leaf], leafs);
 
           outOfNode.push(obj);
 
           step = 0;
-        } else if (!this.boundary.IsContain(obj)) {
+        } else if (!leaf.boundary.IsContain(obj)) {
           outOfNode.push(obj);
           step = 1;
         } else {
           step = 1;
         }
       }
+    });
 
-      outOfNode.forEach(obj => root.Add(obj, leafs, true));
-
-      if (this.NeedCollapse) {
-        this.Collapse(leafs);
-
-        this.parent?.RecalculateBucket(root, leafs);
-      }
-    } else {
-      this.nodes.forEach(node => node.RecalculateBucket(root, leafs));
-    }
-
-    if (this === root) {
-      const processLeafs = (node: QuadNode<TCollider>) => {
-        if (node.isLeaf) {
-          if (node.NeedSplit) {
-            node.Split(leafs);
-          }
-        } else {
-          node.nodes.forEach(node => processLeafs(node));
-        }
-      };
-
-      processLeafs(this);
-    }
+    outOfNode.forEach(obj => root.Add(obj, leafs));
   }
 
-  Remove(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
-    const nodes = this.FindNodeContaining(obj);
-
+  RemoveFromNodes(
+    obj: TCollider,
+    nodes: QuadNode<TCollider>[],
+    leafs: Set<QuadNode<TCollider>>
+  ): boolean {
     if (nodes.length === 0) {
       return false;
     }
@@ -225,6 +198,10 @@ export class QuadNode<TCollider extends CircleCollider> {
     }
 
     return true;
+  }
+
+  Remove(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
+    return this.RemoveFromNodes(obj, this.FindNodeContaining(obj), leafs);
   }
 
   get Size(): number {
