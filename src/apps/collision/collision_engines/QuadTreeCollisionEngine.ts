@@ -383,6 +383,7 @@ export class QuadTreeCollisionEngine
     private renderer: QuadTreeRenderer
   ) {
     this.root = new QuadNode(boundary);
+    this.leafs.add(this.root);
     this.renderer.RootFetcher = () => this.root;
   }
 
@@ -424,7 +425,10 @@ export class QuadTreeCollisionEngine
   }
 
   Reset(): void {
+    this.leafs.clear();
+
     this.root = new QuadNode(this.boundary);
+    this.leafs.add(this.root);
   }
 
   Draw(elapsed: number): void {
