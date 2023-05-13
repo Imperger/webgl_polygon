@@ -6,62 +6,50 @@ import { QuadTreeRenderer } from './renderers/QuadTreeRenderer';
 
 export class Boundary {
   constructor(
-    private readonly x: number,
-    private readonly y: number,
-    private readonly width: number,
-    private readonly height: number
+    public X: number,
+    public Y: number,
+    public Width: number,
+    public Height: number
   ) {}
 
-  get X(): number {
-    return this.x;
-  }
-  get Y(): number {
-    return this.y;
-  }
-  get Width(): number {
-    return this.width;
-  }
-  get Height(): number {
-    return this.height;
-  }
   get Right(): number {
-    return this.x + this.width;
+    return this.X + this.Width;
   }
   get Top(): number {
-    return this.y + this.height;
+    return this.Y + this.Height;
   }
 
   IsIntersect(circle: CircleCollider): boolean {
     const circleDistanceX = Math.abs(
-      circle.Center.X - (this.x + this.width / 2)
+      circle.Center.X - (this.X + this.Width / 2)
     );
     const circleDistanceY = Math.abs(
-      circle.Center.Y - (this.y + this.height / 2)
+      circle.Center.Y - (this.Y + this.Height / 2)
     );
 
-    if (circleDistanceX > this.width / 2 + circle.Radius) {
+    if (circleDistanceX > this.Width / 2 + circle.Radius) {
       return false;
     }
-    if (circleDistanceY > this.height / 2 + circle.Radius) {
+    if (circleDistanceY > this.Height / 2 + circle.Radius) {
       return false;
     }
 
-    if (circleDistanceX <= this.width / 2) {
+    if (circleDistanceX <= this.Width / 2) {
       return true;
     }
-    if (circleDistanceY <= this.height / 2) {
+    if (circleDistanceY <= this.Height / 2) {
       return true;
     }
 
     const cornerDistance_sq =
-      (circleDistanceX - this.width / 2) ** 2 +
-      (circleDistanceY - this.height / 2) ** 2;
+      (circleDistanceX - this.Width / 2) ** 2 +
+      (circleDistanceY - this.Height / 2) ** 2;
 
     return cornerDistance_sq <= circle.Radius ** 2;
   }
 
   public IsContain(circle: CircleCollider): boolean {
-    if (circle.Center.X - circle.Radius < this.x) {
+    if (circle.Center.X - circle.Radius < this.X) {
       return false;
     }
 
@@ -69,7 +57,7 @@ export class Boundary {
       return false;
     }
 
-    if (circle.Center.Y - circle.Radius < this.y) {
+    if (circle.Center.Y - circle.Radius < this.Y) {
       return false;
     }
 
@@ -81,59 +69,159 @@ export class Boundary {
   }
 }
 
+interface QuadNodePoolItem<TCollider extends CircleCollider> {
+  node: QuadNode<TCollider>;
+  nextFree: number;
+}
+
+interface QuadNodePoolCreateResult<TCollider extends CircleCollider> {
+  idx: number;
+  node: QuadNode<TCollider>;
+}
+
+export class QuadNodePool<TCollider extends CircleCollider> {
+  private static readonly NoNext = -1;
+  private static readonly GrowthFactor = 2;
+
+  private nextFree = QuadNodePool.NoNext;
+  private pool: QuadNodePoolItem<TCollider>[] = [];
+
+  Create(): QuadNodePoolCreateResult<TCollider> {
+    if (this.IsFull) {
+      this.Expand();
+    }
+
+    const free = this.pool[this.nextFree];
+    const idx = this.nextFree;
+
+    this.nextFree = free.nextFree;
+
+    return { idx, node: free.node };
+  }
+
+  Free(roomIdx: number): void {
+    this.pool[roomIdx].nextFree = this.nextFree;
+    this.nextFree = roomIdx;
+  }
+
+  At(roomIdx: number): QuadNode<TCollider> {
+    return this.pool[roomIdx].node;
+  }
+
+  private Expand(): void {
+    this.nextFree = this.pool.length;
+
+    this.pool = Array.from({ length: this.ExtendedSize }, (_x, n) => {
+      const node =
+        n < this.pool.length
+          ? this.pool[n].node
+          : new QuadNode<TCollider>(new Boundary(0, 0, 0, 0));
+
+      return { node, nextFree: n + 1 };
+    });
+
+    this.pool[this.pool.length - 1].nextFree = QuadNodePool.NoNext;
+  }
+
+  private get IsFull(): boolean {
+    return this.nextFree === QuadNodePool.NoNext;
+  }
+
+  private get ExtendedSize(): number {
+    return this.pool.length === 0
+      ? QuadNodePool.GrowthFactor
+      : this.pool.length * QuadNodePool.GrowthFactor;
+  }
+}
+
 export class QuadNode<TCollider extends CircleCollider> {
+  private static readonly ChildsPerNode = 4;
+  private static readonly NullNode = -1;
   private static readonly MaxDepth = 8;
   private static readonly Capacity = 16;
   private static readonly CollapseRatio = 0.25;
 
   private readonly objects: TCollider[] = [];
-  public readonly nodes: QuadNode<TCollider>[] = [];
+  public childStart = QuadNode.NullNode;
 
   constructor(
     public readonly boundary: Boundary,
-    private parent: QuadNode<TCollider> | null = null,
+    private parent: number = QuadNode.NullNode,
     private isLeaf = true,
-    private readonly depth: number = 1
+    private depth: number = 1
   ) {}
 
-  Add(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
+  Add(
+    obj: TCollider,
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
+  ): boolean {
     if (!this.boundary.IsIntersect(obj)) {
       return false;
     }
 
     if (this.IsLeaf) {
       if (this.NeedSplit) {
-        this.Split(leafs);
+        this.Split(leafs, nodePool);
 
-        return this.nodes.map(node => node.Add(obj, leafs)).some(x => x);
+        return this.AddToChilds(obj, leafs, nodePool);
       } else if (!this.objects.includes(obj)) {
         this.objects.push(obj);
       }
     } else {
-      return this.nodes.map(node => node.Add(obj, leafs)).some(x => x);
+      return this.AddToChilds(obj, leafs, nodePool);
     }
 
     return true;
   }
 
-  FindNodeContaining(obj: TCollider): QuadNode<TCollider>[] {
-    const quads: QuadNode<TCollider>[] = [];
+  AddToChilds(
+    obj: TCollider,
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
+  ): boolean {
+    let added = false;
 
-    const search = (node: QuadNode<TCollider>) => {
+    for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+      added ||= nodePool.At(this.childStart + n).Add(obj, leafs, nodePool);
+    }
+
+    return added;
+  }
+
+  ForEachChild<TFn extends (val: QuadNode<TCollider>, idx: number) => void>(
+    fn: TFn,
+    nodePool: QuadNodePool<TCollider>
+  ): void {
+    for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+      const idx = this.childStart + n;
+      fn(nodePool.At(idx), idx);
+    }
+  }
+
+  FindNodeContaining(
+    obj: TCollider,
+    nodePool: QuadNodePool<TCollider>
+  ): number[] {
+    const quads: number[] = [];
+
+    const search = (nodeIdx: number) => {
+      const node = nodePool.At(nodeIdx);
+
       if (!node.boundary.IsIntersect(obj)) {
         return;
       }
 
       if (node.isLeaf) {
         if (node.objects.indexOf(obj) >= 0) {
-          quads.push(node);
+          quads.push(nodeIdx);
         }
       } else {
-        node.nodes.forEach(child => search(child));
+        node.ForEachChild((_child, idx) => search(idx), nodePool);
       }
     };
 
-    search(this);
+    search(this.PoolIdx(nodePool));
 
     return quads;
   }
@@ -146,15 +234,18 @@ export class QuadNode<TCollider extends CircleCollider> {
 
   RecalculateBucket(
     root: QuadNode<TCollider>,
-    leafs: Set<QuadNode<TCollider>>
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
   ): void {
     const outOfNode: TCollider[] = [];
 
-    leafs.forEach(leaf => {
+    leafs.forEach(leafIdx => {
+      const leaf = nodePool.At(leafIdx);
+
       for (let n = 0, step = 1; n < leaf.objects.length; n += step) {
         const obj = leaf.objects[n];
         if (!leaf.boundary.IsIntersect(obj)) {
-          leaf.RemoveFromNodes(obj, [leaf], leafs);
+          leaf.RemoveFromNodes(obj, [leafIdx], leafs, nodePool);
 
           outOfNode.push(obj);
 
@@ -168,44 +259,82 @@ export class QuadNode<TCollider extends CircleCollider> {
       }
     });
 
-    outOfNode.forEach(obj => root.Add(obj, leafs));
+    outOfNode.forEach(obj => root.Add(obj, leafs, nodePool));
   }
 
   RemoveFromNodes(
     obj: TCollider,
-    nodes: QuadNode<TCollider>[],
-    leafs: Set<QuadNode<TCollider>>
+    nodesIdx: number[],
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
   ): boolean {
-    if (nodes.length === 0) {
+    if (nodesIdx.length === 0) {
       return false;
     }
 
-    nodes.forEach(node => {
+    nodesIdx.forEach(nodeIdx => {
+      const node = nodePool.At(nodeIdx);
+
       const remove = node.objects.indexOf(obj);
       if (remove >= 0) {
         node.objects.splice(remove, 1);
       }
     });
 
-    for (const node of nodes) {
+    for (const node of nodesIdx) {
       for (
-        let collapseCandidate: QuadNode<TCollider> | null = node;
-        collapseCandidate && collapseCandidate.NeedCollapse;
-        collapseCandidate = collapseCandidate.parent
+        let collapseCandidate = node;
+        collapseCandidate !== QuadNode.NullNode &&
+        nodePool.At(collapseCandidate).NeedCollapse(nodePool);
+        collapseCandidate = nodePool.At(collapseCandidate).parent
       ) {
-        collapseCandidate.Collapse(leafs);
+        nodePool.At(collapseCandidate).Collapse(leafs, nodePool);
       }
     }
 
     return true;
   }
 
-  Remove(obj: TCollider, leafs: Set<QuadNode<TCollider>>): boolean {
-    return this.RemoveFromNodes(obj, this.FindNodeContaining(obj), leafs);
+  Remove(
+    obj: TCollider,
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
+  ): boolean {
+    return this.RemoveFromNodes(
+      obj,
+      this.FindNodeContaining(obj, nodePool),
+      leafs,
+      nodePool
+    );
   }
 
-  get Size(): number {
-    return QuadNode.Size(this);
+  get HasChild(): boolean {
+    return this.childStart !== QuadNode.NullNode;
+  }
+
+  Size(nodePool: QuadNodePool<TCollider>): number {
+    return QuadNode.Size(this.PoolIdx(nodePool), nodePool);
+  }
+
+  private PoolIdx(nodePool: QuadNodePool<TCollider>): number {
+    if (this.isLeaf) {
+      if (this.parent === QuadNode.NullNode) {
+        return 0;
+      } else {
+        const parent = nodePool.At(this.parent);
+        for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+          const idx = parent.childStart + n;
+
+          if (nodePool.At(idx) === this) {
+            return idx;
+          }
+        }
+      }
+    } else {
+      return nodePool.At(this.childStart).parent;
+    }
+
+    return QuadNode.NullNode;
   }
 
   private get IsLeaf() {
@@ -220,71 +349,73 @@ export class QuadNode<TCollider extends CircleCollider> {
   }
 
   // Can be called only on leaf node
-  private get NeedCollapse(): boolean {
+  private NeedCollapse(nodePool: QuadNodePool<TCollider>): boolean {
     return (
       this.objects.length / QuadNode.Capacity < QuadNode.CollapseRatio &&
-      this.parent !== null &&
-      this.parent.nodes.reduce((acc, node) => acc + QuadNode.Size(node), 0) <=
-        QuadNode.Capacity
+      this.parent !== QuadNode.NullNode &&
+      QuadNode.Size(this.parent, nodePool) <= QuadNode.Capacity
     );
   }
 
-  private Split(leafs: Set<QuadNode<TCollider>>) {
+  private Split(leafs: Set<number>, nodePool: QuadNodePool<TCollider>) {
     const halfWidth = this.boundary.Width / 2;
     const halfHeight = this.boundary.Height / 2;
 
-    this.nodes.push(
-      new QuadNode(
-        new Boundary(
-          this.boundary.X + halfWidth,
-          this.boundary.Y + halfHeight,
-          halfWidth,
-          halfHeight
-        ),
-        this,
-        true,
-        this.depth + 1
-      )
-    );
-    this.nodes.push(
-      new QuadNode(
-        new Boundary(
-          this.boundary.X,
-          this.boundary.Y + halfHeight,
-          halfWidth,
-          halfHeight
-        ),
-        this,
-        true,
-        this.depth + 1
-      )
-    );
-    this.nodes.push(
-      new QuadNode(
-        new Boundary(this.boundary.X, this.boundary.Y, halfWidth, halfHeight),
-        this,
-        true,
-        this.depth + 1
-      )
-    );
-    this.nodes.push(
-      new QuadNode(
-        new Boundary(
-          this.boundary.X + halfWidth,
-          this.boundary.Y,
-          halfWidth,
-          halfHeight
-        ),
-        this,
-        true,
-        this.depth + 1
-      )
-    );
+    const firstChild = nodePool.Create();
+    const idx = this.PoolIdx(nodePool);
+
+    QuadNode.ConstrucInPlace(firstChild.node, {
+      boundary: new Boundary(
+        this.boundary.X + halfWidth,
+        this.boundary.Y + halfHeight,
+        halfWidth,
+        halfHeight
+      ),
+      parent: idx,
+      isLeaf: true,
+      depth: this.depth + 1
+    });
+
+    this.childStart = firstChild.idx;
+
+    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+      boundary: new Boundary(
+        this.boundary.X,
+        this.boundary.Y + halfHeight,
+        halfWidth,
+        halfHeight
+      ),
+      parent: idx,
+      isLeaf: true,
+      depth: this.depth + 1
+    });
+
+    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+      boundary: new Boundary(
+        this.boundary.X,
+        this.boundary.Y,
+        halfWidth,
+        halfHeight
+      ),
+      parent: idx,
+      isLeaf: true,
+      depth: this.depth + 1
+    });
+
+    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+      boundary: new Boundary(
+        this.boundary.X + halfWidth,
+        this.boundary.Y,
+        halfWidth,
+        halfHeight
+      ),
+      parent: idx,
+      isLeaf: true,
+      depth: this.depth + 1
+    });
 
     this.objects.forEach(obj => {
-      const added = this.nodes
-        .map(node => node.Add(obj, leafs))
-        .some(x => x);
+      const added = this.AddToChilds(obj, leafs, nodePool);
 
       if (!added) {
         throw new Error(
@@ -296,13 +427,16 @@ export class QuadNode<TCollider extends CircleCollider> {
     this.objects.splice(0);
     this.isLeaf = false;
 
-    leafs.delete(this);
-    this.nodes.forEach(leaf => leafs.add(leaf));
+    leafs.delete(idx);
+    this.ForEachChild((_leaf, idx) => leafs.add(idx), nodePool);
   }
 
   // Can be called only on leaf node with parent
-  private Collapse(leafs: Set<QuadNode<TCollider>>): void {
-    if (!this.parent) {
+  private Collapse(
+    leafs: Set<number>,
+    nodePool: QuadNodePool<TCollider>
+  ): void {
+    if (this.parent === QuadNode.NullNode) {
       throw new Error("Can't collapse a root node");
     }
 
@@ -315,28 +449,45 @@ export class QuadNode<TCollider extends CircleCollider> {
       if (node.IsLeaf) {
         node.objects.forEach(obj => receiver.add(obj));
         node.objects.splice(0);
-        leafs.delete(node);
+        leafs.delete(node.PoolIdx(nodePool));
       } else {
-        node.nodes.forEach(node => gather(node));
+        node.ForEachChild(node => gather(node), nodePool);
       }
     };
 
-    gather(this.parent);
+    const parent = nodePool.At(this.parent);
+    gather(parent);
 
-    this.parent.nodes.splice(0);
-    this.parent.objects.push(...receiver);
-    this.parent.isLeaf = true;
+    for (
+      let childOffset = QuadNode.ChildsPerNode - 1;
+      childOffset >= 0;
+      --childOffset
+    ) {
+      nodePool.Free(parent.childStart + childOffset);
+    }
 
-    leafs.add(this.parent);
+    parent.objects.push(...receiver);
+    parent.isLeaf = true;
+
+    leafs.add(parent.PoolIdx(nodePool));
   }
 
   public static Size<TCollider extends CircleCollider>(
-    node: QuadNode<TCollider>
+    nodeIdx: number,
+    nodePool: QuadNodePool<TCollider>
   ): number {
+    const node = nodePool.At(nodeIdx);
+
     if (node.IsLeaf) {
       return node.objects.length;
     } else {
-      return node.nodes.reduce((acc, x) => acc + QuadNode.Size(x), 0);
+      let sum = 0;
+
+      for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+        sum += QuadNode.Size(node.childStart + n, nodePool);
+      }
+
+      return sum;
     }
   }
 
@@ -347,46 +498,84 @@ export class QuadNode<TCollider extends CircleCollider> {
       yield object;
     }
   }
+
+  public static ConstrucInPlace<TCollider extends CircleCollider>(
+    target: QuadNode<TCollider>,
+    args: {
+      boundary: Boundary;
+      parent?: number;
+      isLeaf?: boolean;
+      depth?: number;
+    }
+  ): QuadNode<TCollider> {
+    const fullArgs = {
+      parent: QuadNode.NullNode,
+      isLeaf: true,
+      depth: 1,
+      ...args
+    };
+
+    target.boundary.X = fullArgs.boundary.X;
+    target.boundary.Y = fullArgs.boundary.Y;
+    target.boundary.Width = fullArgs.boundary.Width;
+    target.boundary.Height = fullArgs.boundary.Height;
+
+    target.objects.splice(0);
+    target.parent = fullArgs.parent;
+    target.isLeaf = fullArgs.isLeaf;
+    target.depth = fullArgs.depth;
+    target.childStart = QuadNode.NullNode;
+
+    return target;
+  }
 }
 
 export class QuadTreeCollisionEngine
   implements CollisionEngine<MovingCircleCollider>
 {
   public root: QuadNode<MovingCircleCollider>;
-  private readonly leafs = new Set<QuadNode<MovingCircleCollider>>();
+  private readonly leafs = new Set<number>();
+  private nodePool: QuadNodePool<MovingCircleCollider>;
 
   constructor(
     private readonly boundary: Boundary,
     private renderer: QuadTreeRenderer
   ) {
-    this.root = new QuadNode(boundary);
-    this.leafs.add(this.root);
+    this.nodePool = new QuadNodePool<MovingCircleCollider>();
+    const fromPool = this.nodePool.Create();
+    QuadNode.ConstrucInPlace(fromPool.node, { boundary: this.boundary });
+    this.root = fromPool.node;
+    this.leafs.add(fromPool.idx);
+
     this.renderer.RootFetcher = () => this.root;
+    this.renderer.NodePoolFetcher = () => this.nodePool;
   }
 
   Add(object: MovingCircleCollider): boolean {
-    return this.root.Add(object, this.leafs);
+    return this.root.Add(object, this.leafs, this.nodePool);
   }
 
   Remove(object: MovingCircleCollider): boolean {
-    return this.root.Remove(object, this.leafs);
+    return this.root.Remove(object, this.leafs, this.nodePool);
   }
 
   RecalculateBuckets(): void {
-    this.root.RecalculateBucket(this.root, this.leafs);
+    this.root.RecalculateBucket(this.root, this.leafs, this.nodePool);
   }
 
   FindCollisions(object: MovingCircleCollider): MovingCircleCollider[] {
-    const nodes = this.root.FindNodeContaining(object);
+    const nodes = this.root.FindNodeContaining(object, this.nodePool);
 
-    return nodes.flatMap(node => node.FilterCollided(object));
+    return nodes.flatMap(node =>
+      this.nodePool.At(node).FilterCollided(object)
+    );
   }
 
   ForEachCollided(
     handler: (a: MovingCircleCollider, b: MovingCircleCollider) => void
   ): void {
     this.leafs.forEach(leaf => {
-      const bodies = [...QuadNode.ObjectIterator(leaf)];
+      const bodies = [...QuadNode.ObjectIterator(this.nodePool.At(leaf))];
 
       for (let aIdx = 0; aIdx < bodies.length; ++aIdx) {
         for (let bIdx = aIdx + 1; bIdx < bodies.length; ++bIdx) {
@@ -404,8 +593,11 @@ export class QuadTreeCollisionEngine
   Reset(): void {
     this.leafs.clear();
 
-    this.root = new QuadNode(this.boundary);
-    this.leafs.add(this.root);
+    this.nodePool = new QuadNodePool<MovingCircleCollider>();
+    const fromPool = this.nodePool.Create();
+    QuadNode.ConstrucInPlace(fromPool.node, { boundary: this.boundary });
+    this.root = fromPool.node;
+    this.leafs.add(fromPool.idx);
   }
 
   Draw(elapsed: number): void {

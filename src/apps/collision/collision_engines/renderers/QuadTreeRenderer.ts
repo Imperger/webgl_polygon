@@ -1,5 +1,5 @@
 import { MovingCircleCollider } from '../../models/MovingCircleCollider';
-import { QuadNode } from '../QuadTreeCollisionEngine';
+import { QuadNode, QuadNodePool } from '../QuadTreeCollisionEngine';
 
 import { EngineRenderer } from './EngineRenderer';
 import FQuadTreeNode from './QuadTreeNode.frag';
@@ -20,6 +20,8 @@ export class QuadTreeRenderer implements EngineRenderer {
   };
 
   public RootFetcher!: () => QuadNode<MovingCircleCollider>;
+
+  public NodePoolFetcher!: () => QuadNodePool<MovingCircleCollider>;
 
   constructor(private gl: WebGL2RenderingContext) {
     this.Setup();
@@ -55,7 +57,7 @@ export class QuadTreeRenderer implements EngineRenderer {
     node: QuadNode<MovingCircleCollider>,
     receiver: number[]
   ) {
-    if (node.nodes.length === 0) {
+    if (!node.HasChild) {
       return;
     }
 
@@ -68,7 +70,10 @@ export class QuadTreeRenderer implements EngineRenderer {
     receiver.push(node.boundary.X, node.boundary.Y + halfHeight);
     receiver.push(node.boundary.Right, node.boundary.Y + halfHeight);
 
-    node.nodes.forEach(node => this.CollectNodeBounds(node, receiver));
+    node.ForEachChild(
+      node => this.CollectNodeBounds(node, receiver),
+      this.NodePoolFetcher()
+    );
   }
 
   private Setup(): void {
