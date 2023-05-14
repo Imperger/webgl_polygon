@@ -65,7 +65,7 @@ export class ShaderProgram {
 
     const loc = this.gl.getAttribLocation(this.instance, name);
 
-    if (this.gl.getError() !== 0)
+    if (loc === -1)
       throw new Error(`Failed to locate attribute '${name}'`);
 
     return loc;
