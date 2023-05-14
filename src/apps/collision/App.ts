@@ -1,3 +1,4 @@
+import { BodiesRenderer } from './bodies/BodiesRenderer';
 import { BorderRenderer } from './border/BorderRenderer';
 import { CollisionEngine, XY } from './collision_engines/CollisionEngine';
 import {
@@ -8,14 +9,10 @@ import { Boundary } from './collision_engines/QuadTreeCollisionEngine';
 import { EngineRenderer } from './collision_engines/renderers/EngineRenderer';
 import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer';
 import { MovingCircleCollider } from './models/MovingCircleCollider';
-import FBodies from './shaders/bodies.frag';
-import VBodies from './shaders/bodies.vert';
 
-import { NotNull } from '@/lib/misc/NotNull';
 import { Dimension } from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
-import { ShaderProgram } from '@/lib/render/ShaderProgram';
 
 export interface CameraPosition {
   X: number;
@@ -23,13 +20,6 @@ export interface CameraPosition {
   Zoom: number;
 }
 
-enum CircleComponent {
-  X = 0,
-  Y,
-  R,
-  G,
-  B
-}
 enum ResolutionComponent {
   Width = 0,
   Height
@@ -41,13 +31,7 @@ enum CameraComponent {
 }
 
 export class App {
-  private bodiesVbo!: WebGLBuffer;
-  private bodiesVao!: WebGLVertexArrayObject;
-  private bodiesShader!: ShaderProgram;
-
   private bodies!: MovingCircleCollider[];
-  // x, y, r, g, b
-  private bodiesAttributes!: Float32Array;
   // [x, y, zoom]
   private readonly camera: RVec3 = [0, 0, 1];
 
@@ -70,6 +54,8 @@ export class App {
 
   private engineRenderer!: EngineRenderer;
 
+  private bodiesRenderer!: BodiesRenderer;
+
   public IsEngineRenderrerEnabled = false;
 
   private isSimulationPaused = false;
@@ -89,6 +75,8 @@ export class App {
         (this.engineRenderer = new QuadTreeRenderer(this.gl))
       ]
     });
+
+    this.bodiesRenderer = new BodiesRenderer(this.gl);
 
     this.collisionEngine = this.collisionEngineFactory.Create(engineName);
 
@@ -145,7 +133,7 @@ export class App {
     this.resolution[ResolutionComponent.Width] = dimension.Width;
     this.resolution[ResolutionComponent.Height] = dimension.Height;
 
-    this.bodiesShader.SetUniform2fv('u_resolution', this.resolution);
+    this.bodiesRenderer.ResizeView(dimension);
     this.border.ResizeView(dimension);
     this.engineRenderer.ResizeView(this.resolution);
   }
@@ -183,7 +171,7 @@ export class App {
     this.camera[CameraComponent.Y] = position.Y;
     this.camera[CameraComponent.Zoom] = position.Zoom;
 
-    this.bodiesShader.SetUniform3fv('u_cam', this.camera);
+    this.bodiesRenderer.Camera(this.camera);
     this.border.Camera(this.camera);
     this.engineRenderer.Camera(this.camera);
   }
@@ -196,7 +184,7 @@ export class App {
 
   public set BodiesRadius(radius: number) {
     this.bodyRadius = radius;
-    this.bodiesShader.SetUniform1f('u_radius', radius);
+    this.bodiesRenderer.Radius(radius);
     this.UpdateRadiusForBodies();
   }
 
@@ -204,7 +192,8 @@ export class App {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     if (this.collisionEngine !== null) {
-      this.DrawBodies(elapsed);
+      this.UpdateBodies(elapsed);
+      this.bodiesRenderer.Draw();
       this.border.Draw();
 
       if (this.IsEngineRenderrerEnabled) {
@@ -213,7 +202,7 @@ export class App {
     }
   }
 
-  private DrawBodies(elapsed: number): void {
+  private UpdateBodies(elapsed: number): void {
     if (!this.isSimulationPaused) {
       this.collisionEngine.ForEachCollided((a, b) =>
         a.CheckCollision(b, elapsed)
@@ -223,20 +212,10 @@ export class App {
 
       this.collisionEngine.RecalculateBuckets();
     }
-
-    this.bodiesShader.Use();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bodiesVbo);
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.bodiesAttributes,
-      this.gl.DYNAMIC_DRAW
-    );
-    this.gl.bindVertexArray(this.bodiesVao);
-    this.gl.drawArrays(this.gl.POINTS, 0, this.bodiesCount);
   }
 
   private BuildBodies(): void {
-    const ComponentsCount = Object.keys(CircleComponent).length >> 1;
+    const ComponentsCount = BodiesRenderer.AttributesPerIndex;
 
     this.bodies = [];
 
@@ -253,13 +232,13 @@ export class App {
       (_, n) => attributeBuilder[n % ComponentsCount]()
     );
 
-    this.bodiesAttributes = new Float32Array(data);
+    this.bodiesRenderer.ConstructAttributes(data);
 
     this.collisionEngine.Reset();
 
     for (let n = 0; n < this.bodiesCount; ++n) {
       const object = new MovingCircleCollider(
-        { buffer: this.bodiesAttributes, offset: n * ComponentsCount },
+        this.bodiesRenderer.Attributes(n),
         this.bodyRadius,
         { X: RandomFloat(-100, 100), Y: RandomFloat(-100, 100) }
       );
@@ -275,8 +254,6 @@ export class App {
   }
 
   private Setup(): void {
-    this.SetupBodies();
-
     this.engineRenderer.Camera(this.camera);
     this.engineRenderer.ResizeView(this.resolution);
 
@@ -284,62 +261,6 @@ export class App {
 
     this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-  }
-
-  private SetupBodies(): void {
-    this.bodiesVbo = this.gl.createBuffer() ?? NotNull();
-    this.bodiesVao = this.gl.createVertexArray() ?? NotNull();
-
-    this.bodiesShader = new ShaderProgram(this.gl);
-    this.bodiesShader.Attach(this.gl.FRAGMENT_SHADER, FBodies);
-    this.bodiesShader.Attach(this.gl.VERTEX_SHADER, VBodies);
-    this.bodiesShader.Link();
-    this.bodiesShader.Use();
-
-    this.SetupBodiesAttributes();
-
-    this.bodiesShader.SetUniform3fv('u_cam', this.camera);
-    this.bodiesShader.SetUniform1f('u_radius', this.bodyRadius);
-    this.bodiesShader.SetUniform2fv('u_resolution', this.resolution);
-  }
-
-  private SetupBodiesAttributes(): void {
-    const FloatSize = Float32Array.BYTES_PER_ELEMENT;
-    const ComponentsCount = Object.keys(CircleComponent).length >> 1;
-
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bodiesVbo);
-    this.BuildBodies();
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.bodiesAttributes,
-      this.gl.DYNAMIC_DRAW
-    );
-
-    this.gl.bindVertexArray(this.bodiesVao);
-
-    const posLoc = this.bodiesShader.GetAttributeLocation('a_vertex');
-    this.gl.enableVertexAttribArray(posLoc);
-    this.gl.vertexAttribPointer(
-      posLoc,
-      2,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      0
-    );
-
-    const colorLoc = this.bodiesShader.GetAttributeLocation('a_color');
-    this.gl.enableVertexAttribArray(colorLoc);
-    this.gl.vertexAttribPointer(
-      colorLoc,
-      3,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      FloatSize * 2
-    );
-
-    this.gl.bindVertexArray(null);
   }
 
   private IsDimensionShrink(dimension: Dimension): boolean {
