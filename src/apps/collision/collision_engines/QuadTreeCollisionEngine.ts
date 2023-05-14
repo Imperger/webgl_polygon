@@ -468,6 +468,7 @@ export class QuadNode<TCollider extends CircleCollider> {
 
     parent.objects.push(...receiver);
     parent.isLeaf = true;
+    parent.childStart = QuadNode.NullNode;
 
     leafs.add(parent.PoolIdx(nodePool));
   }
