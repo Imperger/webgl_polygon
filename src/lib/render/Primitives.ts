@@ -3,3 +3,8 @@ export type RVec3 = [number, number, number];
 export type RVec4 = [number, number, number, number];
 
 export type RMat3 = [RVec3, RVec3, RVec3];
+
+export enum RVec2Component {
+  X = 0,
+  Y
+}

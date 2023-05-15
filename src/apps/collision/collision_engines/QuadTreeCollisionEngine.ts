@@ -4,6 +4,8 @@ import { MovingCircleCollider } from '../models/MovingCircleCollider';
 import { CollisionEngine } from './CollisionEngine';
 import { QuadTreeRenderer } from './renderers/QuadTreeRenderer';
 
+import { Shape } from '@/lib/math/Shape';
+
 export class Boundary {
   constructor(
     public X: number,
@@ -20,32 +22,7 @@ export class Boundary {
   }
 
   IsIntersect(circle: CircleCollider): boolean {
-    const circleDistanceX = Math.abs(
-      circle.Center.X - (this.X + this.Width / 2)
-    );
-    const circleDistanceY = Math.abs(
-      circle.Center.Y - (this.Y + this.Height / 2)
-    );
-
-    if (circleDistanceX > this.Width / 2 + circle.Radius) {
-      return false;
-    }
-    if (circleDistanceY > this.Height / 2 + circle.Radius) {
-      return false;
-    }
-
-    if (circleDistanceX <= this.Width / 2) {
-      return true;
-    }
-    if (circleDistanceY <= this.Height / 2) {
-      return true;
-    }
-
-    const cornerDistance_sq =
-      (circleDistanceX - this.Width / 2) ** 2 +
-      (circleDistanceY - this.Height / 2) ** 2;
-
-    return cornerDistance_sq <= circle.Radius ** 2;
+    return Shape.RectanlgeCircleIntersect(this, circle);
   }
 
   public IsContain(circle: CircleCollider): boolean {

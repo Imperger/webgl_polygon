@@ -3,6 +3,7 @@ import { DataDescriptor } from '../models/DataDescriptor';
 import FBodies from './bodies.frag';
 import VBodies from './bodies.vert';
 
+import { EnumSize } from '@/lib/misc/EnumSize';
 import { NotNull } from '@/lib/misc/NotNull';
 import { Dimension } from '@/lib/misc/Primitives';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
@@ -17,7 +18,7 @@ enum CircleComponent {
 }
 
 export class BodiesRenderer {
-  public static AttributesPerIndex = Object.keys(CircleComponent).length >> 1;
+  public static ComponentsPerIndex = EnumSize(CircleComponent);
   private vbo!: WebGLBuffer;
   private vao!: WebGLVertexArrayObject;
   private shader!: ShaderProgram;
@@ -39,7 +40,7 @@ export class BodiesRenderer {
     this.bodiesAttributes = new Float32Array(attrib);
 
     this.indiciesCount =
-      this.bodiesAttributes.length / BodiesRenderer.AttributesPerIndex;
+      this.bodiesAttributes.length / BodiesRenderer.ComponentsPerIndex;
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
     this.gl.bufferData(
@@ -52,7 +53,7 @@ export class BodiesRenderer {
   public Attributes(index: number): DataDescriptor {
     return {
       buffer: this.bodiesAttributes,
-      offset: index * BodiesRenderer.AttributesPerIndex
+      offset: index * BodiesRenderer.ComponentsPerIndex
     };
   }
 
@@ -104,7 +105,7 @@ export class BodiesRenderer {
 
   private SetupBodiesAttributes(): void {
     const FloatSize = Float32Array.BYTES_PER_ELEMENT;
-    const ComponentsCount = Object.keys(CircleComponent).length >> 1;
+    const ComponentsCount = EnumSize(CircleComponent);
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
 

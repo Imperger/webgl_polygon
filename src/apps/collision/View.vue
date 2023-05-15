@@ -1,11 +1,8 @@
 <template>
   <div class="flex">
     <Viewport class="no-focus" tabindex="0" :width="width" :height="height" preserveDrawingBuffer="true"
-      @context-ready="OnContextReady" @wheel.native.prevent="OnWheel($event.deltaY, $event.ctrlKey, $event.altKey)"
-      @mousemove.native="OnMouseMove($event.buttons, $event.ctrlKey, $event.movementX, $event.movementY)"
-      @mousedown.native="OnMouseDown($event.button, $event.ctrlKe, $event.offsetX, $event.offsetY)"
-      @mouseup.native="OnMouseUp($event.button, $event.ctrlKe, $event.offsetX, $event.offsetY)"
-      @keydown.native="OnKeyDown" />
+      @context-ready="OnContextReady" @wheel.native.prevent="OnWheel" @mousemove.native="OnMouseMove"
+      @mousedown.native="OnMouseDown" @mouseup.native="OnMouseUp" @keydown.native="OnKeyDown" />
     <aside>
       <help-popup />
       <h3 class="control-panel-title">Collision</h3>
@@ -104,16 +101,13 @@ aside {
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator';
 
-import { App, CameraPosition } from './App';
-import { XY } from './collision_engines/CollisionEngine';
+import { App } from './App';
 import { SupportedCollisionEngine } from './collision_engines/CollisionEngineFactory';
 import DimensionEditor from './DimensionEditor.vue';
 import HelpPopup from './HelpPopup.vue';
 
 import Viewport from '@/components/Viewport.vue';
-import { MouseButton, MouseButtons } from '@/lib/misc/Dom';
 import { Dimension } from '@/lib/misc/Primitives';
-import { RVec3 } from '@/lib/render/Primitives';
 
 @Component({
   components: {
@@ -132,15 +126,12 @@ export default class Main extends Vue {
   public bodiesCount = 10000;
   public bodiesRadius = 2;
   public showEngineInternals = false;
-  public camera: CameraPosition = { X: 0, Y: 0, Zoom: 1 };
 
   public collisionEngine: SupportedCollisionEngine = 'quad-tree';
 
   public fps = 0;
   private drawCallCounter = 0;
   private drawCallCounterStart = Date.now();
-
-  private leftBtnPressPosition!: XY;
 
   private app!: App;
   private isUnmounted!: boolean;
@@ -165,15 +156,8 @@ export default class Main extends Vue {
     this.app.IsEngineRenderrerEnabled = value;
   }
 
-  @Watch('camera')
-  private CameraChange(value: CameraPosition, _prev: RVec3): void {
-    this.app.Camera = value;
-  }
-
   public async mounted() {
     this.isUnmounted = false;
-
-    this.leftBtnPressPosition = new XY(0, 0);
 
     window.addEventListener('resize', this.OnResize);
 
@@ -228,50 +212,27 @@ export default class Main extends Vue {
     }
   }
 
-  public OnWheel(offset: number, _ctrl: boolean, _alt: boolean) {
-    const dir = -offset / Math.abs(offset);
-    const zoom = this.camera.Zoom;
-    const step = dir * (dir > 0 ? 0.1 : 0.2);
-
-    if (zoom + step > 0.5 && zoom + step < 10) {
-      this.camera.Zoom = zoom + step;
-
-      this.app.Camera = this.camera;
-    }
+  public OnWheel(e: WheelEvent) {
+    this.app.OnWheel(e);
   }
   /**
    * @param offsetX positive values for moving towards right
    * @param offsetY positive values for moving towards top
    */
-  public OnMouseMove(btn: MouseButtons, ctrl: boolean, offsetX: number, offsetY: number) {
-    if (btn & MouseButtons.Left) {
-      this.camera.X += offsetX / this.camera.Zoom;
-      this.camera.Y += offsetY / this.camera.Zoom;
-
-      this.app.Camera = this.camera;
-    }
+  public OnMouseMove(e: MouseEvent) {
+    this.app.OnMouseMove(e)
   }
 
-  public OnMouseDown(btn: MouseButton, ctrl: boolean, x: number, y: number): void {
-    if (btn === MouseButton.Left) {
-      this.leftBtnPressPosition = new XY(x, y);
-    }
+  public OnMouseDown(e: MouseEvent): void {
+    this.app.OnMouseDown(e);
   }
 
-  public OnMouseUp(btn: MouseButton, ctrl: boolean, x: number, y: number): void {
-    if (btn === MouseButton.Left) {
-      if (this.leftBtnPressPosition.Distance(new XY(x, y)) < 2) {
-        this.app.SelectBody(x, y);
-      }
-    }
+  public OnMouseUp(e: MouseEvent): void {
+    this.app.OnMouseUp(e);
   }
 
-  public OnKeyDown(event: KeyboardEvent): void {
-    switch (event.code) {
-      case 'Space':
-        this.app.Pause = !this.app.Pause;
-        break;
-    }
+  public OnKeyDown(e: KeyboardEvent): void {
+    this.app.OnKeyDown(e);
   }
 
   public ChangeFieldDimension(dimension: Dimension): void {

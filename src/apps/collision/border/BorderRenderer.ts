@@ -2,7 +2,7 @@ import FBorder from './border.frag';
 import VBorder from './border.vert';
 
 import { NotNull } from '@/lib/misc/NotNull';
-import { Dimension } from '@/lib/misc/Primitives';
+import { Dimension, Rgb } from '@/lib/misc/Primitives';
 import { PrimitiveBuilder } from '@/lib/render/PrimitiveBuilder';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
 import { ShaderProgram } from '@/lib/render/ShaderProgram';
@@ -17,7 +17,7 @@ export class BorderRenderer {
   private camera: RVec3 = [0, 0, 1];
 
   private readonly borderColorConfig = {
-    default: { R: 0.5, G: 0.5, B: 0.5 }
+    default: [0.5, 0.5, 0.5] as Rgb
   };
   constructor(
     private gl: WebGL2RenderingContext,

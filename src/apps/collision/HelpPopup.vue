@@ -7,6 +7,9 @@
           <fa-icon icon="mouse" />&nbsp; <span class="accent">LMB</span> - select body
         </li>
         <li>
+          <fa-icon icon="mouse" />&nbsp; <span class="accent">LMB</span> + <span class="accent">SHIFT</span> - select bodies in a rectangular region
+        </li>
+        <li>
           <fa-icon icon="keyboard" />&nbsp; <span class="accent">SPACE</span> - pause & resume simulation
         </li>
       </ul>

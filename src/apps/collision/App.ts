@@ -8,29 +8,30 @@ import {
 import { Boundary } from './collision_engines/QuadTreeCollisionEngine';
 import { EngineRenderer } from './collision_engines/renderers/EngineRenderer';
 import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer';
+import { AppEvent, AppEventSet } from './Events';
 import { MovingCircleCollider } from './models/MovingCircleCollider';
+import { AvailableMouseTool, MouseTool } from './tools/MouseTool';
+import { PanTool } from './tools/PanTool';
+import { SelectionTool } from './tools/SelectionTool/SelectionTool';
 
-import { Dimension } from '@/lib/misc/Primitives';
+import { Shape } from '@/lib/math/Shape';
+import { MouseButton } from '@/lib/misc/Dom';
+import { EventBus } from '@/lib/misc/EventBus';
+import { Dimension, Rectangle } from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
+import { Camera2, Camera2Component } from '@/lib/render/Camera';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
 
-export interface CameraPosition {
-  X: number;
-  Y: number;
-  Zoom: number;
-}
+type UpdatedCameraComponent = Partial<Camera2>;
 
 enum ResolutionComponent {
   Width = 0,
   Height
 }
-enum CameraComponent {
-  X = 0,
-  Y,
-  Zoom
-}
 
 export class App {
+  public static EventBus = new EventBus<AppEventSet, typeof AppEvent>(AppEvent);
+
   private bodies!: MovingCircleCollider[];
   // [x, y, zoom]
   private readonly camera: RVec3 = [0, 0, 1];
@@ -60,6 +61,8 @@ export class App {
 
   private isSimulationPaused = false;
 
+  private mouseTool!: MouseTool;
+
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private engineName: SupportedCollisionEngine
@@ -82,6 +85,8 @@ export class App {
 
     this.border = new BorderRenderer(gl, this.fieldDimension);
 
+    this.mouseTool = new PanTool(this.gl, this);
+
     this.Setup();
     (window as any)['app'] = this;
   }
@@ -99,15 +104,7 @@ export class App {
   }
 
   public SelectBody(x: number, y: number): boolean {
-    const halfWidth = this.resolution[0] / 2;
-    const halfHeight = this.resolution[1] / 2;
-    const zoom = this.camera[2];
-
-    const worldX = (x - halfWidth) / zoom + halfWidth - this.camera[0];
-    const worldY =
-      (this.resolution[1] - y - halfHeight) / zoom +
-      halfHeight +
-      this.camera[1];
+    const world = this.ScreenToWorld(x, y);
 
     const defaultColor = this.bodyColorConfig.default;
     this.selectedBodies.forEach(body =>
@@ -115,8 +112,30 @@ export class App {
     );
 
     this.selectedBodies = this.bodies.filter(
-      body => body.Center.Distance(new XY(worldX, worldY)) <= body.Radius
+      body => body.Center.Distance(new XY(world.X, world.Y)) <= body.Radius
     );
+    const selectedColor = this.bodyColorConfig.selected;
+    this.selectedBodies.forEach(body =>
+      body.Color({
+        R: selectedColor[0],
+        G: selectedColor[1],
+        B: selectedColor[2]
+      })
+    );
+
+    return true;
+  }
+
+  public SelectBodies(region: Rectangle): boolean {
+    const defaultColor = this.bodyColorConfig.default;
+    this.selectedBodies.forEach(body =>
+      body.Color({ R: defaultColor[0], G: defaultColor[1], B: defaultColor[2] })
+    );
+
+    this.selectedBodies = this.bodies.filter(body =>
+      Shape.RectanlgeCircleIntersect(region, body)
+    );
+
     const selectedColor = this.bodyColorConfig.selected;
     this.selectedBodies.forEach(body =>
       body.Color({
@@ -132,6 +151,8 @@ export class App {
   public ResizeView(dimension: Dimension) {
     this.resolution[ResolutionComponent.Width] = dimension.Width;
     this.resolution[ResolutionComponent.Height] = dimension.Height;
+
+    App.EventBus.Publish(AppEvent.ResizeView, dimension);
 
     this.bodiesRenderer.ResizeView(dimension);
     this.border.ResizeView(dimension);
@@ -158,18 +179,77 @@ export class App {
     this.SwitchCollisionEngine(this.engineName);
   }
 
-  public get Pause(): boolean {
-    return this.isSimulationPaused;
+  public OnMouseMove(e: MouseEvent): void {
+    this.mouseTool.OnMouseMove(e);
   }
 
-  public set Pause(value: boolean) {
-    this.isSimulationPaused = value;
+  public OnMouseDown(e: MouseEvent): void {
+    if (e.button === MouseButton.Left) {
+      if (e.shiftKey) {
+        this.SwitchMouseTool(AvailableMouseTool.Selection);
+      } else {
+        this.SwitchMouseTool(AvailableMouseTool.Pan);
+      }
+    }
+
+    this.mouseTool.OnMouseDown(e);
   }
 
-  public set Camera(position: CameraPosition) {
-    this.camera[CameraComponent.X] = position.X;
-    this.camera[CameraComponent.Y] = position.Y;
-    this.camera[CameraComponent.Zoom] = position.Zoom;
+  public OnMouseUp(e: MouseEvent): void {
+    this.mouseTool.OnMouseUp(e);
+
+    if (
+      e.button === MouseButton.Left &&
+      this.mouseTool instanceof SelectionTool
+    ) {
+      this.SwitchMouseTool(AvailableMouseTool.Pan);
+    }
+  }
+
+  public OnKeyDown(e: KeyboardEvent): void {
+    this.mouseTool.OnKeyDown(e);
+  }
+
+  OnWheel(e: WheelEvent): void {
+    this.mouseTool.OnWheel(e);
+  }
+
+  public ScreenToWorld(x: number, y: number) {
+    const halfWidth = this.resolution[0] / 2;
+    const halfHeight = this.resolution[1] / 2;
+    const zoom = this.camera[2];
+
+    const worldX = (x - halfWidth) / zoom + halfWidth - this.camera[0];
+    const worldY =
+      (this.resolution[1] - y - halfHeight) / zoom +
+      halfHeight +
+      this.camera[1];
+
+    return { X: worldX, Y: worldY };
+  }
+
+  public get Camera(): Required<UpdatedCameraComponent> {
+    return {
+      X: this.camera[Camera2Component.X],
+      Y: this.camera[Camera2Component.Y],
+      Zoom: this.camera[Camera2Component.Zoom]
+    };
+  }
+
+  public set Camera(position: UpdatedCameraComponent) {
+    if (position.X !== undefined) {
+      this.camera[Camera2Component.X] = position.X;
+    }
+
+    if (position.Y !== undefined) {
+      this.camera[Camera2Component.Y] = position.Y;
+    }
+
+    if (position.Zoom !== undefined) {
+      this.camera[Camera2Component.Zoom] = position.Zoom;
+    }
+
+    App.EventBus.Publish(AppEvent.CameraMove, this.Camera);
 
     this.bodiesRenderer.Camera(this.camera);
     this.border.Camera(this.camera);
@@ -188,6 +268,21 @@ export class App {
     this.UpdateRadiusForBodies();
   }
 
+  public get ViewDimension(): Dimension {
+    return {
+      Width: this.resolution[ResolutionComponent.Width],
+      Height: this.resolution[ResolutionComponent.Height]
+    };
+  }
+
+  public get Pause(): boolean {
+    return this.isSimulationPaused;
+  }
+
+  public set Pause(value: boolean) {
+    this.isSimulationPaused = value;
+  }
+
   public Draw(elapsed: number): void {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
@@ -200,6 +295,8 @@ export class App {
         this.collisionEngine.Draw(elapsed);
       }
     }
+
+    this.mouseTool.Draw(elapsed);
   }
 
   private UpdateBodies(elapsed: number): void {
@@ -215,7 +312,7 @@ export class App {
   }
 
   private BuildBodies(): void {
-    const ComponentsCount = BodiesRenderer.AttributesPerIndex;
+    const ComponentsCount = BodiesRenderer.ComponentsPerIndex;
 
     this.bodies = [];
 
@@ -258,7 +355,8 @@ export class App {
     this.engineRenderer.ResizeView(this.resolution);
 
     this.gl.disable(this.gl.DEPTH_TEST);
-
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
@@ -268,5 +366,18 @@ export class App {
       dimension.Width < this.fieldDimension.Width ||
       dimension.Height < this.fieldDimension.Height
     );
+  }
+
+  private SwitchMouseTool(tool: AvailableMouseTool): void {
+    if (this.mouseTool !== null) {
+      this.mouseTool.Dispose();
+    }
+
+    const factory = [
+      () => new PanTool(this.gl, this),
+      () => new SelectionTool(this.gl, this)
+    ];
+
+    this.mouseTool = factory[tool]();
   }
 }
