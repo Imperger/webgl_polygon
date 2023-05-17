@@ -63,6 +63,8 @@ export class App {
 
   private mouseTool!: MouseTool;
 
+  private resizeViewBehavior = (d: Dimension) => this.CenterCamera(d);
+
   constructor(
     private readonly gl: WebGL2RenderingContext,
     private engineName: SupportedCollisionEngine
@@ -149,6 +151,21 @@ export class App {
   }
 
   public ResizeView(dimension: Dimension) {
+    this.resizeViewBehavior(dimension);
+  }
+
+  private CenterCamera(dimension: Dimension): void {
+    this.Camera = {
+      X: (dimension.Width - this.fieldDimension.Width) / 2,
+      Y: -(dimension.Height - this.fieldDimension.Height) / 2
+    };
+
+    this.ResizeViewDefault(dimension);
+
+    this.resizeViewBehavior = (d: Dimension) => this.ResizeViewDefault(d);
+  }
+
+  private ResizeViewDefault(dimension: Dimension): void {
     this.resolution[ResolutionComponent.Width] = dimension.Width;
     this.resolution[ResolutionComponent.Height] = dimension.Height;
 
