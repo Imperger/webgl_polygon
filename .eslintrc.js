@@ -17,6 +17,8 @@ module.exports = {
     'indent': 'off',
     '@typescript-eslint/indent': 'off',
     "comma-dangle": "off",
+    "no-empty-function": "off",
+    "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/comma-dangle": ["error"],
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
