@@ -170,6 +170,7 @@ export default class Main extends Vue {
   public beforeDestroy() {
     this.isUnmounted = true;
     window.removeEventListener('resize', this.OnResize);
+    this.app.Dispose();
   }
 
   public OnContextReady(ctx: WebGL2RenderingContext) {

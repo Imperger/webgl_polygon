@@ -90,7 +90,12 @@ export class App {
     this.mouseTool = new PanTool(this.gl, this);
 
     this.Setup();
+
     (window as any)['app'] = this;
+  }
+
+  public Dispose(): void {
+    delete (window as any)['app'];
   }
 
   public SwitchCollisionEngine(engineName: SupportedCollisionEngine): void {
