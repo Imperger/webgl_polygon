@@ -5,6 +5,10 @@ export class Angle {
     return (degree / 180) * Math.PI;
   }
 
+  public static ToDegrees(rad: number) {
+    return (rad / Math.PI) * 180;
+  }
+
   public static Vec0Pi(a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): number {
     const a: Vec2 = { X: a1.X - a0.X, Y: a1.Y - a0.Y };
     const b: Vec2 = { X: b1.X - b0.X, Y: b1.Y - b0.Y };

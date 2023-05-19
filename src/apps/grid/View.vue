@@ -168,8 +168,8 @@ import FShader from './grid.frag';
 import VShader from './grid.vert';
 
 import Viewport from '@/components/Viewport.vue';
+import { Angle } from '@/lib/math/Angle';
 import { AcceleratedStepper } from '@/lib/misc/AcceleratedStepper';
-import { ToDegrees } from '@/lib/misc/Angle';
 import { DataUrlDownloader } from '@/lib/misc/DataUrlDownloader';
 import { EventWaiter } from '@/lib/misc/EventWaiter';
 import { ShaderProgram } from '@/lib/render/ShaderProgram';
@@ -328,7 +328,7 @@ export default class Main extends Vue {
   public get ImageScale() { return this.imageState[3]; }
   private get ImageAngle() { return this.imageState[2]; }
   private set ImageAngle(angle: number) { this.$set(this.imageState, 2, angle); }
-  public get ImageAngleDegrees() { return ToDegrees(this.ImageAngle); }
+  public get ImageAngleDegrees() { return Angle.ToDegrees(this.ImageAngle); }
   private get ImageDimension(): Dimension {
     return {
       width: this.imgRealDimension.width * this.imageState[3],
