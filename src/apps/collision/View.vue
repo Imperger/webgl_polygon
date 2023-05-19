@@ -2,7 +2,9 @@
   <div class="flex">
     <Viewport class="no-focus" tabindex="0" :width="width" :height="height" preserveDrawingBuffer="true"
       @context-ready="OnContextReady" @wheel.native.prevent="OnWheel" @mousemove.native="OnMouseMove"
-      @mousedown.native="OnMouseDown" @mouseup.native="OnMouseUp" @keydown.native="OnKeyDown" />
+      @mousedown.native="OnMouseDown" @mouseup.native="OnMouseUp" @keydown.native="OnKeyDown" 
+      @touchmove.native="OnTouchMove" @touchstart.native="OnTouchStart"
+      @touchend.native="OnTouchEnd"/>
     <aside>
       <help-popup />
       <h3 class="control-panel-title">Collision</h3>
@@ -234,6 +236,18 @@ export default class Main extends Vue {
 
   public OnKeyDown(e: KeyboardEvent): void {
     this.app.OnKeyDown(e);
+  }
+
+  public OnTouchMove(e: TouchEvent): void {
+    this.app.OnTouchMove(e);
+  }
+
+  public OnTouchStart(e: TouchEvent): void {
+    this.app.OnTouchStart(e);
+  }
+
+  public OnTouchEnd(e: TouchEvent): void {
+    this.app.OnTouchEnd(e);
   }
 
   public ChangeFieldDimension(dimension: Dimension): void {

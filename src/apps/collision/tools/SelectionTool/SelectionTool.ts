@@ -1,7 +1,7 @@
 import { App } from '../../App';
 import { AppEvent } from '../../Events';
 import { ZoomDefault } from '../artifacts/ZoomDefault';
-import { MouseTool } from '../MouseTool';
+import { AvailableInteractionTool, InteractionTool } from '../InteractionTool';
 
 import FSelectionRectangle from './SelectionRectangle.frag';
 import VSelectionRectangle from './SelectionRectangle.vert';
@@ -22,7 +22,7 @@ import { PrimitiveBuilder } from '@/lib/render/PrimitiveBuilder';
 import { RVec2, RVec2Component, RVec3 } from '@/lib/render/Primitives';
 import { ShaderProgram } from '@/lib/render/ShaderProgram';
 
-export class SelectionTool implements MouseTool {
+export class SelectionTool implements InteractionTool {
   private vbo!: WebGLBuffer;
   private vao!: WebGLVertexArrayObject;
   private shader!: ShaderProgram;
@@ -34,6 +34,8 @@ export class SelectionTool implements MouseTool {
   private selectionStart!: Vec2;
   private selectionRect: Rectangle | null = null;
 
+  private zoom: ZoomDefault;
+
   private readonly ComponentsCount =
     EnumSize(RVec2Component) + EnumSize(RgbaComponent);
 
@@ -43,6 +45,8 @@ export class SelectionTool implements MouseTool {
     private readonly gl: WebGL2RenderingContext,
     private readonly app: App
   ) {
+    this.zoom = new ZoomDefault(this.app);
+
     this.SetupListeners();
     this.Setup();
 
@@ -50,6 +54,10 @@ export class SelectionTool implements MouseTool {
 
     const cam = this.app.Camera;
     this.Camera([cam.X, cam.Y, cam.Zoom]);
+  }
+
+  public get Type(): AvailableInteractionTool {
+    return AvailableInteractionTool.Selection;
   }
 
   public ResizeView(size: Dimension): void {
@@ -138,8 +146,14 @@ export class SelectionTool implements MouseTool {
   }
 
   OnWheel(e: WheelEvent): void {
-    ZoomDefault(this.app, e);
+    this.zoom.Relative(e.deltaY);
   }
+
+  public OnTouchMove(_e: TouchEvent): void {}
+
+  public OnTouchStart(_e: TouchEvent): void {}
+
+  public OnTouchEnd(_e: TouchEvent): void {}
 
   Draw(_elapsed: number): void {
     if (this.attributes === null) {

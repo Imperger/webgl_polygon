@@ -26,7 +26,16 @@ class Observer<TListener extends SubHandler<any>> {
 
 type EmptyIfVoid<T> = T extends void ? [] : [T];
 
-export class EventBus<TEventSet, TEventEnum extends EventEnum> {
+export interface EventBusObserver<TEventSet> {
+  Subscribe<TEvent extends keyof TEventSet & number>(
+    event: TEvent,
+    handler: SubHandler<[TEventSet[TEvent]]>
+  ): Unsubscription;
+}
+
+export class EventBus<TEventSet, TEventEnum extends EventEnum>
+  implements EventBusObserver<TEventSet>
+{
   private readonly observers: Observer<any>[];
 
   constructor(eventSet: TEventEnum) {

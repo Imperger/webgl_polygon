@@ -1,11 +1,22 @@
 import { App } from '../../App';
 
-export function ZoomDefault(app: App, e: WheelEvent) {
-  const dir = -e.deltaY / Math.abs(e.deltaY);
-  const zoom = app.Camera.Zoom;
-  const step = dir * (dir > 0 ? 0.1 : 0.2);
+import { MathUtil } from '@/lib/math/MathUtil';
 
-  if (zoom + step > 0.5 && zoom + step < 10) {
-    app.Camera = { Zoom: zoom + step };
+export class ZoomDefault {
+  private readonly min = 0.5;
+  private readonly max = 10;
+
+  constructor(private readonly app: App) {}
+
+  public Relative(value: number): void {
+    const dir = -value / Math.abs(value);
+    const zoom = this.app.Camera.Zoom;
+    const step = dir * (dir > 0 ? 0.1 : 0.2);
+
+    this.app.Camera = { Zoom: MathUtil.Clamp(zoom + step, this.min, this.max) };
+  }
+
+  public Absolute(value: number): void {
+    this.app.Camera = { Zoom: MathUtil.Clamp(value, this.min, this.max) };
   }
 }

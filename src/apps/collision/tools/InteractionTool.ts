@@ -1,9 +1,11 @@
-export enum AvailableMouseTool {
+export enum AvailableInteractionTool {
   Pan = 0,
   Selection
 }
 
-export interface MouseTool {
+export interface InteractionTool {
+  get Type(): AvailableInteractionTool;
+
   OnMouseDown(e: MouseEvent): void;
 
   OnMouseUp(e: MouseEvent): void;
@@ -13,6 +15,12 @@ export interface MouseTool {
   OnMouseMove(e: MouseEvent): void;
 
   OnWheel(e: WheelEvent): void;
+
+  OnTouchMove(e: TouchEvent): void;
+
+  OnTouchStart(e: TouchEvent): void;
+
+  OnTouchEnd(e: TouchEvent): void;
 
   Draw(elapsed: number): void;
 

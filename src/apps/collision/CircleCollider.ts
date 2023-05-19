@@ -1,11 +1,7 @@
 import { XY } from './collision_engines/CollisionEngine';
 import { DataDescriptor } from './models/DataDescriptor';
 
-class CollisionDetector {
-  static CircleCircle(c0: CircleCollider, c1: CircleCollider): boolean {
-    return c0.Center.Distance(c1.Center) <= c0.Radius + c1.Radius;
-  }
-}
+import { Shape } from '@/lib/math/Shape';
 
 export class CircleCollider {
   private cachedCenter!: XY;
@@ -33,6 +29,6 @@ export class CircleCollider {
   }
 
   IsCollide(obj: CircleCollider): boolean {
-    return CollisionDetector.CircleCircle(this, obj);
+    return Shape.CircleCircleIntersect(this, obj);
   }
 }

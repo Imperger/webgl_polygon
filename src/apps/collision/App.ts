@@ -10,7 +10,10 @@ import { EngineRenderer } from './collision_engines/renderers/EngineRenderer';
 import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer';
 import { AppEvent, AppEventSet } from './Events';
 import { MovingCircleCollider } from './models/MovingCircleCollider';
-import { AvailableMouseTool, MouseTool } from './tools/MouseTool';
+import {
+  AvailableInteractionTool,
+  InteractionTool
+} from './tools/InteractionTool';
 import { PanTool } from './tools/PanTool';
 import { SelectionTool } from './tools/SelectionTool/SelectionTool';
 
@@ -61,7 +64,7 @@ export class App {
 
   private isSimulationPaused = false;
 
-  private mouseTool!: MouseTool;
+  private interactionTool!: InteractionTool;
 
   private resizeViewBehavior = (d: Dimension) => this.CenterCamera(d);
 
@@ -87,7 +90,7 @@ export class App {
 
     this.border = new BorderRenderer(gl, this.fieldDimension);
 
-    this.mouseTool = new PanTool(this.gl, this);
+    this.interactionTool = new PanTool(this.gl, this);
 
     this.Setup();
 
@@ -202,38 +205,50 @@ export class App {
   }
 
   public OnMouseMove(e: MouseEvent): void {
-    this.mouseTool.OnMouseMove(e);
+    this.interactionTool.OnMouseMove(e);
   }
 
   public OnMouseDown(e: MouseEvent): void {
     if (e.button === MouseButton.Left) {
       if (e.shiftKey) {
-        this.SwitchMouseTool(AvailableMouseTool.Selection);
+        this.SwitchInteractionTool(AvailableInteractionTool.Selection);
       } else {
-        this.SwitchMouseTool(AvailableMouseTool.Pan);
+        this.SwitchInteractionTool(AvailableInteractionTool.Pan);
       }
     }
 
-    this.mouseTool.OnMouseDown(e);
+    this.interactionTool.OnMouseDown(e);
   }
 
   public OnMouseUp(e: MouseEvent): void {
-    this.mouseTool.OnMouseUp(e);
+    this.interactionTool.OnMouseUp(e);
 
     if (
       e.button === MouseButton.Left &&
-      this.mouseTool instanceof SelectionTool
+      this.interactionTool instanceof SelectionTool
     ) {
-      this.SwitchMouseTool(AvailableMouseTool.Pan);
+      this.SwitchInteractionTool(AvailableInteractionTool.Pan);
     }
   }
 
   public OnKeyDown(e: KeyboardEvent): void {
-    this.mouseTool.OnKeyDown(e);
+    this.interactionTool.OnKeyDown(e);
   }
 
   OnWheel(e: WheelEvent): void {
-    this.mouseTool.OnWheel(e);
+    this.interactionTool.OnWheel(e);
+  }
+
+  public OnTouchMove(e: TouchEvent): void {
+    this.interactionTool.OnTouchMove(e);
+  }
+
+  public OnTouchStart(e: TouchEvent): void {
+    this.interactionTool.OnTouchStart(e);
+  }
+
+  public OnTouchEnd(e: TouchEvent): void {
+    this.interactionTool.OnTouchEnd(e);
   }
 
   public ScreenToWorld(x: number, y: number) {
@@ -318,7 +333,7 @@ export class App {
       }
     }
 
-    this.mouseTool.Draw(elapsed);
+    this.interactionTool.Draw(elapsed);
   }
 
   private UpdateBodies(elapsed: number): void {
@@ -390,9 +405,13 @@ export class App {
     );
   }
 
-  private SwitchMouseTool(tool: AvailableMouseTool): void {
-    if (this.mouseTool !== null) {
-      this.mouseTool.Dispose();
+  private SwitchInteractionTool(tool: AvailableInteractionTool): void {
+    if (this.interactionTool !== null) {
+      if (tool === this.interactionTool.Type) {
+        return;
+      }
+
+      this.interactionTool.Dispose();
     }
 
     const factory = [
@@ -400,6 +419,6 @@ export class App {
       () => new SelectionTool(this.gl, this)
     ];
 
-    this.mouseTool = factory[tool]();
+    this.interactionTool = factory[tool]();
   }
 }
