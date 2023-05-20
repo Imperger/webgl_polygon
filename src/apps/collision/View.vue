@@ -1,62 +1,52 @@
 <template>
   <div class="flex">
-    <Viewport class="no-focus" tabindex="0" :width="width" :height="height" preserveDrawingBuffer="true"
+    <Viewport class="outline-none" tabindex="0" :width="width" :height="height" preserveDrawingBuffer="true"
       @context-ready="OnContextReady" @wheel.native.prevent="OnWheel" @mousemove.native="OnMouseMove"
       @mousedown.native="OnMouseDown" @mouseup.native="OnMouseUp" @keydown.native="OnKeyDown" 
       @touchmove.native="OnTouchMove" @touchstart.native="OnTouchStart"
       @touchend.native="OnTouchEnd"/>
     <aside>
+      <div class="absolute text-xs">
+        <span>FPS: {{ fps }}</span>
+      </div>
+      <h3 class="text-center">Collision</h3>
       <help-popup />
-      <h3 class="control-panel-title">Collision</h3>
-      <fieldset class="detection-engine-group">
+      <fieldset class="border border-y-slate-200 border-x-transparent p-2">
         <legend>Detection engine</legend>
-        <div class="detection-engine-selector">
+        <div>
           <input id="QuadTree" type="radio" name="detectionEngine" value="quad-tree" v-model="collisionEngine" checked>
           <label for="QuadTree">Quad tree</label>
         </div>
-        <div class="detection-engine-selector">
+        <div>
           <input id="BruteForce" type="radio" value="brute-force" v-model="collisionEngine" name="detectionEngine">
           <label for="BruteForce">Brute-force</label>
         </div>
       </fieldset>
-      <div class="input-group">
-        <span :class="{ 'caption-validation-error': isInvalidBodiesCount }" class="input-title">Bodies</span>
+      <div class="mt-2">
+        <span :class="{ 'caption-validation-error': isInvalidBodiesCount }" class="mr-2">Bodies</span>
         <input type="number" :class="{ 'input-validation-error': isInvalidBodiesCount }" v-model.number="bodiesCount"
           min="2" max="1000000">
       </div>
-      <div class="input-group">
-        <span :class="{ 'caption-validation-error': isInvalidBodiesRadius }" class="input-title">Radius</span>
+      <div class="mt-1">
+        <span :class="{ 'caption-validation-error': isInvalidBodiesRadius }" class="mr-2">Radius</span>
         <input type="number" :class="{ 'input-validation-error': isInvalidBodiesRadius }" v-model.number="bodiesRadius"
           min="1" max="500">
       </div>
-      <div class="input-group">
-        <label for="showEngineInternals" class="input-title">Show engine internals</label>
-        <input id="showEngineInternals" type="checkbox" v-model="showEngineInternals" min="1" max="500">
+      <div>
+        <label for="showEngineInternals" class="mr-2 text-gray-900">Show engine internals</label>
+        <input id="showEngineInternals" type="checkbox" v-model="showEngineInternals" min="1" max="500" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
       </div>
+      <div>
         <button @click="TogglePause" class="mr-2"><fa-icon :icon="togglePauseIcon" /></button>
         <button @click="OpenDimensionEditor" class="bg-transparent text-white-700 font-semibold py-2 px-4">Boundary</button>
       </div>
       <dimension-editor v-if="isDimensionEditorOpened" :dimension="fieldDimension" @apply="ChangeFieldDimension"
         @cancel="CloseDimensionEditor" />
-      <div class="fps-counter">
-        <span>FPS: </span>
-        <span class="fps-counter-value">{{ fps }}</span>
-      </div>
     </aside>
   </div>
 </template>
 
 <style scoped>
-@import "../../css/button.css";
-@import "../../css/input.css";
-
-.no-focus:focus {
-  outline: none;
-}
-
-.flex {
-  display: flex;
-}
 
 aside {
   position: absolute;
@@ -67,37 +57,6 @@ aside {
   list-style-type: none;
 }
 
-.control-panel-title {
-  margin: 0 0 5px 0;
-  text-align: center;
-}
-
-.input-group {
-  margin-bottom: 5px;
-}
-
-.input-title {
-  margin-right: 5px;
-}
-
-.detection-engine-group {
-  border-color: black;
-  margin: 0 0 10px 0;
-}
-
-.bodies-count>input[type='number'] {
-  margin-left: 5px;
-}
-
-.fps-counter {
-  text-align: right;
-}
-
-.fps-counter-value {
-  display: inline-block;
-  width: 18px;
-  text-align: left;
-}
 </style>
 
 <script lang="ts">
@@ -111,6 +70,8 @@ import HelpPopup from './HelpPopup.vue';
 
 import Viewport from '@/components/Viewport.vue';
 import { Dimension } from '@/lib/misc/Primitives';
+
+import "../../css/input.css";
 
 @Component({
   components: {

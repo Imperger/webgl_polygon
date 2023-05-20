@@ -78,7 +78,6 @@
 </template>
 
 <style scoped>
-@import "../../css/button.css";
 
 .panelHelpTrigger {
   position: absolute;

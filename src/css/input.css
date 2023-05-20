@@ -1,11 +1,7 @@
 input[type='number'],
 input[type='text'],
 input[type="password"] {
-    padding: 6px 13px;
-    color: #f5f5f5;
-    background-color: #ffffff00;
-    border: 2px solid black;
-    border-radius: 4px;
+    @apply bg-sky-700 text-white;
 }
 
 .caption-validation-error {
