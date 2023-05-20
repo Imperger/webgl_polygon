@@ -99,6 +99,8 @@ export class App {
 
   public Dispose(): void {
     delete (window as any)['app'];
+
+    App.EventBus.Reset();
   }
 
   public SwitchCollisionEngine(engineName: SupportedCollisionEngine): void {

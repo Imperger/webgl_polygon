@@ -58,4 +58,10 @@ export class EventBus<TEventSet, TEventEnum extends EventEnum>
   ): Unsubscription {
     return this.observers[event].Subscribe(handler);
   }
+
+  public Reset(): void {
+    for (let n = 0; n < this.observers.length; ++n) {
+      this.observers[n] = new Observer();
+    }
+  }
 }
