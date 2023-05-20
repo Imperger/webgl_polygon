@@ -33,8 +33,8 @@
         <label for="showEngineInternals" class="input-title">Show engine internals</label>
         <input id="showEngineInternals" type="checkbox" v-model="showEngineInternals" min="1" max="500">
       </div>
-      <div class="input-group">
-        <button @click="OpenDimensionEditor">Set field dimension</button>
+        <button @click="TogglePause" class="mr-2"><fa-icon :icon="togglePauseIcon" /></button>
+        <button @click="OpenDimensionEditor" class="bg-transparent text-white-700 font-semibold py-2 px-4">Boundary</button>
       </div>
       <dimension-editor v-if="isDimensionEditorOpened" :dimension="fieldDimension" @apply="ChangeFieldDimension"
         @cancel="CloseDimensionEditor" />
@@ -106,6 +106,7 @@ import { Component, Vue, Watch } from 'vue-property-decorator';
 import { App } from './App';
 import { SupportedCollisionEngine } from './collision_engines/CollisionEngineFactory';
 import DimensionEditor from './DimensionEditor.vue';
+import { AppEvent } from './Events';
 import HelpPopup from './HelpPopup.vue';
 
 import Viewport from '@/components/Viewport.vue';
@@ -130,6 +131,9 @@ export default class Main extends Vue {
   public showEngineInternals = false;
 
   public collisionEngine: SupportedCollisionEngine = 'quad-tree';
+
+  private togglePauseIcons = ['pause', 'play'];
+  public togglePauseIcon = this.togglePauseIcons[+false];
 
   public fps = 0;
   private drawCallCounter = 0;
@@ -159,6 +163,8 @@ export default class Main extends Vue {
   }
 
   public async mounted() {
+    App.EventBus.Subscribe(AppEvent.TogglePause, pause => this.togglePauseIcon = this.togglePauseIcons[+pause])
+    
     this.isUnmounted = false;
 
     window.addEventListener('resize', this.OnResize);
@@ -264,6 +270,11 @@ export default class Main extends Vue {
 
   public CloseDimensionEditor(): void {
     this.isDimensionEditorOpened = false;
+  }
+
+  public TogglePause(): void {
+    this.app.Pause = !this.app.Pause;
+    this.togglePauseIcon = this.togglePauseIcons[+this.app.Pause];
   }
 
   private OnResize() {

@@ -318,6 +318,8 @@ export class App {
 
   public set Pause(value: boolean) {
     this.isSimulationPaused = value;
+
+    App.EventBus.Publish(AppEvent.TogglePause, value);
   }
 
   public Draw(elapsed: number): void {

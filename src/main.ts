@@ -2,7 +2,9 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import {
   faQuestionCircle,
   faMouse,
-  faKeyboard
+  faKeyboard,
+  faPlay,
+  faPause
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Vue from 'vue';
@@ -10,11 +12,13 @@ import Vue from 'vue';
 import App from './App.vue';
 import router from './router';
 import store from './store';
-import "@/assets/tailwind.css";
+import '@/assets/tailwind.css';
 
 library.add(faQuestionCircle);
 library.add(faMouse);
 library.add(faKeyboard);
+library.add(faPlay);
+library.add(faPause);
 
 Vue.component('fa-icon', FontAwesomeIcon);
 
