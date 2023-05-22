@@ -60,7 +60,7 @@ export class App {
 
   private bodiesRenderer!: BodiesRenderer;
 
-  public IsEngineRenderrerEnabled = false;
+  public IsEngineRendererEnabled = false;
 
   private isSimulationPaused = false;
 
@@ -145,7 +145,7 @@ export class App {
     );
 
     this.selectedBodies = this.bodies.filter(body =>
-      Shape.RectanlgeCircleIntersect(region, body)
+      Shape.RectangleCircleIntersect(region, body)
     );
 
     const selectedColor = this.bodyColorConfig.selected;
@@ -295,10 +295,18 @@ export class App {
     this.engineRenderer.Camera(this.camera);
   }
 
+  public get BodiesCount(): number {
+    return this.bodiesCount;
+  }
+
   public set BodiesCount(count: number) {
     this.bodiesCount = count;
 
     this.BuildBodies();
+  }
+
+  public get BodiesRadius(): number {
+    return this.bodyRadius;
   }
 
   public set BodiesRadius(radius: number) {
@@ -312,6 +320,10 @@ export class App {
       Width: this.resolution[ResolutionComponent.Width],
       Height: this.resolution[ResolutionComponent.Height]
     };
+  }
+
+  public get FieldBoundary(): Dimension {
+    return this.fieldDimension;
   }
 
   public get Pause(): boolean {
@@ -332,7 +344,7 @@ export class App {
       this.bodiesRenderer.Draw();
       this.border.Draw();
 
-      if (this.IsEngineRenderrerEnabled) {
+      if (this.IsEngineRendererEnabled) {
         this.collisionEngine.Draw(elapsed);
       }
     }

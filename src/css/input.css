@@ -1,21 +1,18 @@
 input[type='number'],
 input[type='text'],
 input[type="password"] {
-    @apply bg-sky-700 text-white;
+    @apply bg-sky-700;
+    @apply text-white;
+    @apply pl-1;
 }
 
 .caption-validation-error {
-    color: #F50057;
-    font-weight: bold;
+    @apply text-red-600;
+    @apply font-black;
 }
 
-input[type='number'].input-validation-error,
-input[type='text'].input-validation-error,
-input[type="password"].input-validation-error {
-    border-bottom-color: red;
-}
-
-input[type='number']:focus {
-    outline: 0;
-    box-shadow: 0 2px #fbc02d;
+input[type='number'].invalid,
+input[type='text'].invalid,
+input[type="password"].invalid {
+    @apply text-red-600;
 }

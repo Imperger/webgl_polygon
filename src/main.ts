@@ -4,7 +4,8 @@ import {
   faMouse,
   faKeyboard,
   faPlay,
-  faPause
+  faPause,
+  faSave
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import Vue from 'vue';
@@ -19,6 +20,7 @@ library.add(faMouse);
 library.add(faKeyboard);
 library.add(faPlay);
 library.add(faPause);
+library.add(faSave);
 
 Vue.component('fa-icon', FontAwesomeIcon);
 

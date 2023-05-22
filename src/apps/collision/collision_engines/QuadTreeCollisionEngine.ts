@@ -22,7 +22,7 @@ export class Boundary {
   }
 
   IsIntersect(circle: CircleCollider): boolean {
-    return Shape.RectanlgeCircleIntersect(this, circle);
+    return Shape.RectangleCircleIntersect(this, circle);
   }
 
   public IsContain(circle: CircleCollider): boolean {

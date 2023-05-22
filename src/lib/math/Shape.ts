@@ -3,7 +3,7 @@ import { Circle, Rectangle } from '../misc/Primitives';
 import { Point } from './Point';
 
 export class Shape {
-  public static RectanlgeCircleIntersect(
+  public static RectangleCircleIntersect(
     rect: Rectangle,
     circle: Circle
   ): boolean {
