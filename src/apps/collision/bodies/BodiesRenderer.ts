@@ -30,7 +30,7 @@ export class BodiesRenderer {
   // x, y, r, g, b
   private bodiesAttributes!: Float32Array;
 
-  private indiciesCount = 0;
+  private indicesCount = 0;
 
   constructor(private gl: WebGL2RenderingContext) {
     this.SetupBodies();
@@ -39,7 +39,7 @@ export class BodiesRenderer {
   public ConstructAttributes(attrib: number[]): void {
     this.bodiesAttributes = new Float32Array(attrib);
 
-    this.indiciesCount =
+    this.indicesCount =
       this.bodiesAttributes.length / BodiesRenderer.ComponentsPerIndex;
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
@@ -66,7 +66,7 @@ export class BodiesRenderer {
       this.gl.DYNAMIC_DRAW
     );
     this.gl.bindVertexArray(this.vao);
-    this.gl.drawArrays(this.gl.POINTS, 0, this.indiciesCount);
+    this.gl.drawArrays(this.gl.POINTS, 0, this.indicesCount);
   }
 
   public ResizeView(size: Dimension): void {

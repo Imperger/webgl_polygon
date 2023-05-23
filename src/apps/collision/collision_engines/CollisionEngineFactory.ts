@@ -23,7 +23,7 @@ export type SupportedCollisionEngine = keyof Engines;
 type HasArguments<T extends Constructor> =
   ConstructorParameters<T>['length'] extends 0 ? false : true;
 
-type EnginesWihoutOptions = Pick<
+type EnginesWithoutOptions = Pick<
   Engines,
   {
     [Prop in keyof Engines]: HasArguments<
@@ -35,7 +35,7 @@ type EnginesWihoutOptions = Pick<
 >;
 
 type ArgsBuilder = {
-  [Prop in keyof EnginesWihoutOptions]: EnginesWihoutOptions[Prop]['args'];
+  [Prop in keyof EnginesWithoutOptions]: EnginesWithoutOptions[Prop]['args'];
 };
 
 export class CollisionEngineFactory {

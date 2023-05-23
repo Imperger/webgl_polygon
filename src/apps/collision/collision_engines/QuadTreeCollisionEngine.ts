@@ -112,7 +112,7 @@ export class QuadNodePool<TCollider extends CircleCollider> {
 }
 
 export class QuadNode<TCollider extends CircleCollider> {
-  private static readonly ChildsPerNode = 4;
+  private static readonly ChildrenPerNode = 4;
   private static readonly NullNode = -1;
   private static readonly MaxDepth = 8;
   private static readonly Capacity = 16;
@@ -141,25 +141,25 @@ export class QuadNode<TCollider extends CircleCollider> {
       if (this.NeedSplit) {
         this.Split(leafs, nodePool);
 
-        return this.AddToChilds(obj, leafs, nodePool);
+        return this.AddToChildren(obj, leafs, nodePool);
       } else if (!this.objects.includes(obj)) {
         this.objects.push(obj);
       }
     } else {
-      return this.AddToChilds(obj, leafs, nodePool);
+      return this.AddToChildren(obj, leafs, nodePool);
     }
 
     return true;
   }
 
-  AddToChilds(
+  AddToChildren(
     obj: TCollider,
     leafs: Set<number>,
     nodePool: QuadNodePool<TCollider>
   ): boolean {
     let added = false;
 
-    for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+    for (let n = 0; n < QuadNode.ChildrenPerNode; ++n) {
       added ||= nodePool.At(this.childStart + n).Add(obj, leafs, nodePool);
     }
 
@@ -170,7 +170,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     fn: TFn,
     nodePool: QuadNodePool<TCollider>
   ): void {
-    for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+    for (let n = 0; n < QuadNode.ChildrenPerNode; ++n) {
       const idx = this.childStart + n;
       fn(nodePool.At(idx), idx);
     }
@@ -299,7 +299,7 @@ export class QuadNode<TCollider extends CircleCollider> {
         return 0;
       } else {
         const parent = nodePool.At(this.parent);
-        for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+        for (let n = 0; n < QuadNode.ChildrenPerNode; ++n) {
           const idx = parent.childStart + n;
 
           if (nodePool.At(idx) === this) {
@@ -341,7 +341,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     const firstChild = nodePool.Create();
     const idx = this.PoolIdx(nodePool);
 
-    QuadNode.ConstrucInPlace(firstChild.node, {
+    QuadNode.ConstructInPlace(firstChild.node, {
       boundary: new Boundary(
         this.boundary.X + halfWidth,
         this.boundary.Y + halfHeight,
@@ -355,7 +355,7 @@ export class QuadNode<TCollider extends CircleCollider> {
 
     this.childStart = firstChild.idx;
 
-    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+    QuadNode.ConstructInPlace(nodePool.Create().node, {
       boundary: new Boundary(
         this.boundary.X,
         this.boundary.Y + halfHeight,
@@ -367,7 +367,7 @@ export class QuadNode<TCollider extends CircleCollider> {
       depth: this.depth + 1
     });
 
-    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+    QuadNode.ConstructInPlace(nodePool.Create().node, {
       boundary: new Boundary(
         this.boundary.X,
         this.boundary.Y,
@@ -379,7 +379,7 @@ export class QuadNode<TCollider extends CircleCollider> {
       depth: this.depth + 1
     });
 
-    QuadNode.ConstrucInPlace(nodePool.Create().node, {
+    QuadNode.ConstructInPlace(nodePool.Create().node, {
       boundary: new Boundary(
         this.boundary.X + halfWidth,
         this.boundary.Y,
@@ -392,7 +392,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     });
 
     this.objects.forEach(obj => {
-      const added = this.AddToChilds(obj, leafs, nodePool);
+      const added = this.AddToChildren(obj, leafs, nodePool);
 
       if (!added) {
         throw new Error(
@@ -436,7 +436,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     gather(parent);
 
     for (
-      let childOffset = QuadNode.ChildsPerNode - 1;
+      let childOffset = QuadNode.ChildrenPerNode - 1;
       childOffset >= 0;
       --childOffset
     ) {
@@ -461,7 +461,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     } else {
       let sum = 0;
 
-      for (let n = 0; n < QuadNode.ChildsPerNode; ++n) {
+      for (let n = 0; n < QuadNode.ChildrenPerNode; ++n) {
         sum += QuadNode.Size(node.childStart + n, nodePool);
       }
 
@@ -477,7 +477,7 @@ export class QuadNode<TCollider extends CircleCollider> {
     }
   }
 
-  public static ConstrucInPlace<TCollider extends CircleCollider>(
+  public static ConstructInPlace<TCollider extends CircleCollider>(
     target: QuadNode<TCollider>,
     args: {
       boundary: Boundary;
@@ -521,7 +521,7 @@ export class QuadTreeCollisionEngine
   ) {
     this.nodePool = new QuadNodePool<MovingCircleCollider>();
     const fromPool = this.nodePool.Create();
-    QuadNode.ConstrucInPlace(fromPool.node, { boundary: this.boundary });
+    QuadNode.ConstructInPlace(fromPool.node, { boundary: this.boundary });
     this.root = fromPool.node;
     this.leafs.add(fromPool.idx);
 
@@ -573,7 +573,7 @@ export class QuadTreeCollisionEngine
 
     this.nodePool = new QuadNodePool<MovingCircleCollider>();
     const fromPool = this.nodePool.Create();
-    QuadNode.ConstrucInPlace(fromPool.node, { boundary: this.boundary });
+    QuadNode.ConstructInPlace(fromPool.node, { boundary: this.boundary });
     this.root = fromPool.node;
     this.leafs.add(fromPool.idx);
   }
