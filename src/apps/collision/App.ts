@@ -1,6 +1,8 @@
 import { BodiesRenderer } from './bodies/BodiesRenderer';
+import { Body } from './bodies/Body';
+import { CircleBody } from './bodies/kinds/circle/CircleBody';
 import { BorderRenderer } from './border/BorderRenderer';
-import { CollisionEngine, XY } from './collision_engines/CollisionEngine';
+import { CollisionEngine } from './collision_engines/CollisionEngine';
 import {
   CollisionEngineFactory,
   SupportedCollisionEngine
@@ -9,7 +11,6 @@ import { Boundary } from './collision_engines/QuadTreeCollisionEngine';
 import { EngineRenderer } from './collision_engines/renderers/EngineRenderer';
 import { QuadTreeRenderer } from './collision_engines/renderers/QuadTreeRenderer';
 import { AppEvent, AppEventSet } from './Events';
-import { MovingCircleCollider } from './models/MovingCircleCollider';
 import {
   AvailableInteractionTool,
   InteractionTool
@@ -17,10 +18,9 @@ import {
 import { PanTool } from './tools/PanTool';
 import { SelectionTool } from './tools/SelectionTool/SelectionTool';
 
-import { Shape } from '@/lib/math/Shape';
 import { MouseButton } from '@/lib/misc/Dom';
 import { EventBus } from '@/lib/misc/EventBus';
-import { Dimension, Rectangle } from '@/lib/misc/Primitives';
+import { Dimension, AABBRectangle } from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
 import { Camera2, Camera2Component } from '@/lib/render/Camera';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
@@ -35,11 +35,16 @@ enum ResolutionComponent {
 export class App {
   public static EventBus = new EventBus<AppEventSet, typeof AppEvent>(AppEvent);
 
-  private bodies!: MovingCircleCollider[];
+  private bodies!: Body[];
   // [x, y, zoom]
   private readonly camera: RVec3 = [0, 0, 1];
 
-  private fieldDimension: Dimension = { Width: 1000, Height: 1000 };
+  private fieldDimension: AABBRectangle = {
+    X: 0,
+    Y: 0,
+    Width: 1000,
+    Height: 1000
+  };
   private readonly resolution: RVec2 = [800, 600];
   private bodiesCount = 100;
   private bodyRadius = 15;
@@ -51,10 +56,10 @@ export class App {
 
   private border!: BorderRenderer;
 
-  private collisionEngine!: CollisionEngine<MovingCircleCollider>;
+  private collisionEngine!: CollisionEngine;
   private collisionEngineFactory!: CollisionEngineFactory;
 
-  private selectedBodies: MovingCircleCollider[] = [];
+  private selectedBodies: Body[] = [];
 
   private engineRenderer!: EngineRenderer;
 
@@ -123,8 +128,8 @@ export class App {
       body.Color({ R: defaultColor[0], G: defaultColor[1], B: defaultColor[2] })
     );
 
-    this.selectedBodies = this.bodies.filter(
-      body => body.Center.Distance(new XY(world.X, world.Y)) <= body.Radius
+    this.selectedBodies = this.bodies.filter(body =>
+      body.IsOverlap({ X: world.X, Y: world.Y, Width: 1, Height: 1 })
     );
     const selectedColor = this.bodyColorConfig.selected;
     this.selectedBodies.forEach(body =>
@@ -138,15 +143,13 @@ export class App {
     return true;
   }
 
-  public SelectBodies(region: Rectangle): boolean {
+  public SelectBodies(region: AABBRectangle): boolean {
     const defaultColor = this.bodyColorConfig.default;
     this.selectedBodies.forEach(body =>
       body.Color({ R: defaultColor[0], G: defaultColor[1], B: defaultColor[2] })
     );
 
-    this.selectedBodies = this.bodies.filter(body =>
-      Shape.RectangleCircleIntersect(region, body)
-    );
+    this.selectedBodies = this.bodies.filter(body => body.IsInside(region));
 
     const selectedColor = this.bodyColorConfig.selected;
     this.selectedBodies.forEach(body =>
@@ -189,17 +192,20 @@ export class App {
   public ResizeField(dimension: Dimension): void {
     if (this.IsDimensionShrink(dimension)) {
       this.bodies.forEach(body => {
-        if (body.Center.X + body.Radius > dimension.Width) {
-          body.Center = new XY(dimension.Width - body.Radius, body.Center.Y);
-        }
+        const rect = {
+          X: 0,
+          Y: 0,
+          Width: dimension.Width,
+          Height: dimension.Height
+        };
 
-        if (body.Center.Y + body.Radius > dimension.Height) {
-          body.Center = new XY(body.Center.X, dimension.Height - body.Radius);
+        if (!body.IsInside(rect)) {
+          body.MoveInto(rect);
         }
       });
     }
 
-    this.fieldDimension = { ...dimension };
+    this.fieldDimension = { X: 0, Y: 0, ...dimension };
 
     this.border.Dimension(this.fieldDimension);
 
@@ -387,7 +393,7 @@ export class App {
     this.collisionEngine.Reset();
 
     for (let n = 0; n < this.bodiesCount; ++n) {
-      const object = new MovingCircleCollider(
+      const object = new CircleBody(
         this.bodiesRenderer.Attributes(n),
         this.bodyRadius,
         { X: RandomFloat(-100, 100), Y: RandomFloat(-100, 100) }
@@ -400,7 +406,9 @@ export class App {
   }
 
   private UpdateRadiusForBodies(): void {
-    this.bodies.forEach(body => (body.Radius = this.bodyRadius));
+    this.bodies.forEach(
+      body => body instanceof CircleBody && (body.Radius = this.bodyRadius)
+    );
   }
 
   private Setup(): void {

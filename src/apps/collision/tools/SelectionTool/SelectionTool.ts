@@ -12,7 +12,7 @@ import { Unsubscription } from '@/lib/misc/EventBus';
 import { NotNull } from '@/lib/misc/NotNull';
 import {
   Dimension,
-  Rectangle,
+  AABBRectangle,
   Rgba,
   RgbaComponent,
   Vec2
@@ -32,7 +32,7 @@ export class SelectionTool implements InteractionTool {
   private camera: RVec3 = [0, 0, 1];
 
   private selectionStart!: Vec2;
-  private selectionRect: Rectangle | null = null;
+  private selectionRect: AABBRectangle | null = null;
 
   private zoom: ZoomDefault;
 

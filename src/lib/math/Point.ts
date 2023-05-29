@@ -1,9 +1,13 @@
-import { Vec2 } from '../misc/Primitives';
+import { Rectangle, Vec2 } from '../misc/Primitives';
+
+import { Real } from './Real';
 
 interface ExtremumResult<TPoint> {
   min: TPoint;
   max: TPoint;
 }
+
+export type RotatedRectangleVertices = [Vec2, Vec2, Vec2, Vec2];
 
 export class Point {
   public static Distance(p0: Vec2, p1: Vec2): number {
@@ -28,5 +32,70 @@ export class Point {
     });
 
     return { min, max };
+  }
+
+  /**
+   * Counterclockwise rotation around origin
+   */
+  public static Rotate(p: Vec2, angle: number): Vec2 {
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+
+    return {
+      X: p.X * c - p.Y * s,
+      Y: p.X * s + p.Y * c
+    };
+  }
+
+  /**
+   * Counterclockwise rotation around another point
+   */
+  public static RotateAroundPoint(p: Vec2, origin: Vec2, angle: number): Vec2 {
+    const rotated = Point.Rotate(
+      { X: p.X - origin.X, Y: p.Y - origin.Y },
+      angle
+    );
+
+    rotated.X += origin.X;
+    rotated.Y += origin.Y;
+
+    return rotated;
+  }
+
+  /**
+   * Calculate vertices of a rotated rectangle
+   * @param rect rectangle
+   * @returns Array of vertices: [left bottom, right bottom, right top, left top]
+   */
+  public static RectangleVertices(rect: Rectangle): RotatedRectangleVertices {
+    const rectHalfWidth = rect.Dimension.Width / 2;
+    const rectHalfHeight = rect.Dimension.Height / 2;
+
+    return [
+      Point.RotateAroundPoint(
+        { X: rect.Center.X - rectHalfWidth, Y: rect.Center.Y - rectHalfHeight },
+        rect.Center,
+        rect.Angle
+      ),
+      Point.RotateAroundPoint(
+        { X: rect.Center.X + rectHalfWidth, Y: rect.Center.Y - rectHalfHeight },
+        rect.Center,
+        rect.Angle
+      ),
+      Point.RotateAroundPoint(
+        { X: rect.Center.X + rectHalfWidth, Y: rect.Center.Y + rectHalfHeight },
+        rect.Center,
+        rect.Angle
+      ),
+      Point.RotateAroundPoint(
+        { X: rect.Center.X - rectHalfWidth, Y: rect.Center.Y + rectHalfHeight },
+        rect.Center,
+        rect.Angle
+      )
+    ];
+  }
+
+  public static IsEqual(a: Vec2, b: Vec2): boolean {
+    return Real.IsEqual(a.X, b.X) && Real.IsEqual(a.Y, b.Y);
   }
 }

@@ -51,7 +51,7 @@ export class CollisionEngineFactory {
     }
   }
 
-  Create(name: keyof Engines): CollisionEngine<MovingCircleCollider> {
+  Create(name: keyof Engines): CollisionEngine {
     const engine = this.engines[name];
 
     const ctor = engine.constructor as Constructor;

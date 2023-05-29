@@ -1,4 +1,4 @@
-import { Shape } from '../math/Shape';
+import { Intersection } from '../math/Intersection';
 import { EventBus, EventBusObserver } from '../misc/EventBus';
 import { Circle } from '../misc/Primitives';
 
@@ -49,7 +49,7 @@ export class TouchDoubleTap {
           step = 0;
 
           this.prev.splice(n, 1);
-        } else if (Shape.CircleCircleIntersect(touchCircle, prevCircle)) {
+        } else if (Intersection.CircleCircle(touchCircle, prevCircle)) {
           add = false;
           step = 0;
 

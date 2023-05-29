@@ -1,4 +1,4 @@
-import { CircleCollider } from '../CircleCollider';
+import { Collider } from './Collider';
 
 import { Point } from '@/lib/math/Point';
 
@@ -10,13 +10,18 @@ export class XY {
   }
 }
 
-export interface CollisionEngine<TCollider extends CircleCollider> {
+export interface CollisionEngine {
   // Returns true if added
-  Add(object: TCollider): boolean;
+  Add(object: Collider): boolean;
+
   // Returns true if found
-  Remove(object: TCollider): boolean;
+  Remove(object: Collider): boolean;
+
   RecalculateBuckets(): void;
-  ForEachCollided(handler: (a: TCollider, b: TCollider) => void): void;
+
+  ForEachCollided(handler: (a: Collider, b: Collider) => void): void;
+
   Reset(): void;
+
   Draw(elapsed: number): void;
 }

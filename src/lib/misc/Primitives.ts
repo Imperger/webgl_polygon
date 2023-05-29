@@ -46,11 +46,22 @@ export interface Dimension {
   Height: number;
 }
 
-export interface Rectangle {
+export interface AABBRectangle {
   X: number;
   Y: number;
   Width: number;
   Height: number;
+}
+
+export interface Rectangle {
+  Center: Vec2;
+  Dimension: Dimension;
+  Angle: number;
+}
+
+export interface Line {
+  A: Vec2;
+  B: Vec2;
 }
 
 export interface Circle {

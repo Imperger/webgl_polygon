@@ -1,22 +1,19 @@
-import { MovingCircleCollider } from '../models/MovingCircleCollider';
-
+import { Collider } from './Collider';
 import { CollisionEngine } from './CollisionEngine';
 
-export class BruteForceCollisionEngine
-  implements CollisionEngine<MovingCircleCollider>
-{
+export class BruteForceCollisionEngine implements CollisionEngine {
   Reset(): void {
     this.objects.splice(0);
   }
-  private objects: MovingCircleCollider[] = [];
+  private objects: Collider[] = [];
 
-  Add(object: MovingCircleCollider): boolean {
+  Add(object: Collider): boolean {
     this.objects.push(object);
 
     return true;
   }
 
-  Remove(object: MovingCircleCollider): boolean {
+  Remove(object: Collider): boolean {
     const removedIdx = this.objects.indexOf(object);
 
     if (removedIdx >= 0) {
@@ -28,9 +25,7 @@ export class BruteForceCollisionEngine
     return false;
   }
 
-  ForEachCollided(
-    handler: (a: MovingCircleCollider, b: MovingCircleCollider) => void
-  ): void {
+  ForEachCollided(handler: (a: Collider, b: Collider) => void): void {
     for (let aIdx = 0; aIdx < this.objects.length; ++aIdx) {
       for (let bIdx = aIdx + 1; bIdx < this.objects.length; ++bIdx) {
         const a = this.objects[aIdx];
