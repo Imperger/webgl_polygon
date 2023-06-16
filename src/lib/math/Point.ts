@@ -1,4 +1,4 @@
-import { Rectangle, Vec2 } from '../misc/Primitives';
+import { AABBRectangle, Rectangle, Vec2 } from '../misc/Primitives';
 
 import { Real } from './Real';
 
@@ -11,7 +11,11 @@ export type RotatedRectangleVertices = [Vec2, Vec2, Vec2, Vec2];
 
 export class Point {
   public static Distance(p0: Vec2, p1: Vec2): number {
-    return Math.sqrt(Math.pow(p0.X - p1.X, 2) + Math.pow(p0.Y - p1.Y, 2));
+    return Math.sqrt(Point.SqrDistance(p0, p1));
+  }
+
+  public static SqrDistance(p0: Vec2, p1: Vec2): number {
+    return Math.pow(p0.X - p1.X, 2) + Math.pow(p0.Y - p1.Y, 2);
   }
 
   public static Extremum2(points: Vec2[]): ExtremumResult<Vec2> {
@@ -92,6 +96,22 @@ export class Point {
         rect.Center,
         rect.Angle
       )
+    ];
+  }
+
+  /**
+   * Calculate vertices of an AABB rectangle
+   * @param rect rectangle
+   * @returns Array of vertices: [left bottom, right bottom, right top, left top]
+   */
+  public static AabbRectangleVertices(
+    rect: AABBRectangle
+  ): RotatedRectangleVertices {
+    return [
+      { X: rect.X, Y: rect.Y },
+      { X: rect.X + rect.Width, Y: rect.Y },
+      { X: rect.X + rect.Width, Y: rect.Y + rect.Width },
+      { X: rect.X, Y: rect.Y + rect.Width }
     ];
   }
 

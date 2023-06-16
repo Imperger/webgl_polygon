@@ -1,17 +1,13 @@
 import { Collider } from '../../../collision_engines/Collider';
+import { Collision } from '../../Collision';
 import { CircleCollider } from '../circle/CircleCollider';
 
 import { Intersection } from '@/lib/math/Intersection';
 import { Point } from '@/lib/math/Point';
-import {
-  AABBRectangle,
-  Dimension,
-  Rectangle,
-  Vec2
-} from '@/lib/misc/Primitives';
+import { AABBRectangle, Dimension, Vec2 } from '@/lib/misc/Primitives';
 
-export class RectangleCollider implements Collider {
-  private vertices!: [Vec2, Vec2, Vec2, Vec2];
+export class StaticRectangleCollider implements Collider {
+  public Vertices!: [Vec2, Vec2, Vec2, Vec2];
   public constructor(
     public readonly Center: Vec2,
     public readonly Dimension: Dimension,
@@ -25,7 +21,7 @@ export class RectangleCollider implements Collider {
   }
 
   IsInside(rect: AABBRectangle): boolean {
-    return this.vertices.every(p => Intersection.AABBRectanglePoint(rect, p));
+    return this.Vertices.every(p => Intersection.AABBRectanglePoint(rect, p));
   }
 
   public IsCollide(another: Collider): boolean {
@@ -36,27 +32,31 @@ export class RectangleCollider implements Collider {
     return Intersection.RectangleCircle(this, circle);
   }
 
-  public CollideWithRectangle(_rect: Rectangle): boolean {
+  public CollideWithRectangle(_rect: StaticRectangleCollider): boolean {
     throw new Error('Not required now');
   }
 
   public CheckCollision(collider: Collider, elapsed: number): void {
-    throw new Error('Method not implemented.');
+    collider.CheckCollisionWithRectangle(this, elapsed);
   }
 
   public CheckCollisionWithCircle(
     circle: CircleCollider,
-    elapsed: number
+    _elapsed: number
   ): void {
+    Collision.CircleStaticRectangle(circle, this);
+  }
+
+  public CheckCollisionWithRectangle(
+    _rect: StaticRectangleCollider,
+    _elapsed: number
+  ): void {
+    // Since we doesn't have any moving rectangles its not necessary
     throw new Error('Method not implemented.');
   }
 
-  public CheckCollisionWithRectangle(rect: Rectangle, elapsed: number): void {
-    throw new Error('Method not implemented.');
-  }
-
-  public Move(boundary: AABBRectangle, elapsed: number): void {
-    throw new Error('Method not implemented.');
+  public Move(_boundary: AABBRectangle, _elapsed: number): void {
+    // Since it's a static - nothing to do
   }
 
   public get Angle(): number {
@@ -70,6 +70,6 @@ export class RectangleCollider implements Collider {
   }
 
   private UpdateVertices(): void {
-    this.vertices = Point.RectangleVertices(this);
+    this.Vertices = Point.RectangleVertices(this);
   }
 }

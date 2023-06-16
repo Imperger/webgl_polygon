@@ -123,12 +123,12 @@ export class BorderRenderer {
     const BorderWidth = 2;
     // Left, Top, Right, Bottom
     this.attributes = new Float32Array([
-      ...PrimitiveBuilder.ColorRectangle(
+      ...PrimitiveBuilder.AABBColorRectangle(
         { X: -BorderWidth, Y: 0 },
         { Width: BorderWidth, Height: this.fieldDimension.Height },
         this.borderColorConfig.default
       ),
-      ...PrimitiveBuilder.ColorRectangle(
+      ...PrimitiveBuilder.AABBColorRectangle(
         { X: -BorderWidth, Y: this.fieldDimension.Height },
         {
           Width: this.fieldDimension.Width + 2 * BorderWidth,
@@ -136,12 +136,12 @@ export class BorderRenderer {
         },
         this.borderColorConfig.default
       ),
-      ...PrimitiveBuilder.ColorRectangle(
+      ...PrimitiveBuilder.AABBColorRectangle(
         { X: this.fieldDimension.Width, Y: 0 },
         { Width: BorderWidth, Height: this.fieldDimension.Height },
         this.borderColorConfig.default
       ),
-      ...PrimitiveBuilder.ColorRectangle(
+      ...PrimitiveBuilder.AABBColorRectangle(
         { X: -BorderWidth, Y: -BorderWidth },
         {
           Width: this.fieldDimension.Width + 2 * BorderWidth,

@@ -1,5 +1,3 @@
-import { MovingCircleCollider } from '../models/MovingCircleCollider';
-
 import { BruteForceCollisionEngine } from './BruteForceCollisionEngine';
 import { CollisionEngine } from './CollisionEngine';
 import { QuadTreeCollisionEngine } from './QuadTreeCollisionEngine';

@@ -1,11 +1,6 @@
-import { CircleCollider } from '../CircleCollider';
-import { MovingCircleCollider } from '../models/MovingCircleCollider';
-
 import { Collider } from './Collider';
 import { CollisionEngine } from './CollisionEngine';
 import { QuadTreeRenderer } from './renderers/QuadTreeRenderer';
-
-import { Intersection } from '@/lib/math/Intersection';
 
 export class Boundary {
   constructor(
@@ -20,30 +15,6 @@ export class Boundary {
   }
   get Top(): number {
     return this.Y + this.Height;
-  }
-
-  IsIntersect(circle: CircleCollider): boolean {
-    return Intersection.AABBRectangleCircle(this, circle);
-  }
-
-  public IsContain(circle: CircleCollider): boolean {
-    if (circle.Center.X - circle.Radius < this.X) {
-      return false;
-    }
-
-    if (circle.Center.X + circle.Radius > this.Right) {
-      return false;
-    }
-
-    if (circle.Center.Y - circle.Radius < this.Y) {
-      return false;
-    }
-
-    if (circle.Center.Y + circle.Radius > this.Top) {
-      return false;
-    }
-
-    return true;
   }
 }
 
@@ -157,7 +128,8 @@ export class QuadNode {
     let added = false;
 
     for (let n = 0; n < QuadNode.ChildrenPerNode; ++n) {
-      added ||= nodePool.At(this.childStart + n).Add(obj, leafs, nodePool);
+      added =
+        nodePool.At(this.childStart + n).Add(obj, leafs, nodePool) || added;
     }
 
     return added;
@@ -521,6 +493,7 @@ export class QuadTreeCollisionEngine implements CollisionEngine {
     this.root.RecalculateBucket(this.root, this.leafs, this.nodePool);
   }
 
+  // TODO Remove obsolete
   FindCollisions(object: Collider): Collider[] {
     const nodes = this.root.FindNodeContaining(object, this.nodePool);
 

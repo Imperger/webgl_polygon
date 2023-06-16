@@ -1,7 +1,9 @@
-import { Dimension, Rgb, Rgba, Vec2 } from '../misc/Primitives';
+import { Point } from '../math/Point';
+import { Dimension, Rectangle, Rgb, Rgba, Vec2 } from '../misc/Primitives';
 
 export class PrimitiveBuilder {
-  public static ColorRectangle(
+  // TODO Use AABBRectangle interface in params
+  public static AABBColorRectangle(
     p0: Vec2,
     dimension: Dimension,
     color: Rgb | Rgba
@@ -22,6 +24,31 @@ export class PrimitiveBuilder {
       ...leftBottom,
       ...rightBottom,
       ...rightTop
+    ];
+  }
+
+  public static ColorRectangle(rect: Rectangle, color: Rgb | Rgba): number[] {
+    const [lb, rb, rt, lt] = Point.RectangleVertices(rect);
+
+    return [
+      lb.X,
+      lb.Y,
+      ...color,
+      rt.X,
+      rt.Y,
+      ...color,
+      lt.X,
+      lt.Y,
+      ...color,
+      lb.X,
+      lb.Y,
+      ...color,
+      rb.X,
+      rb.Y,
+      ...color,
+      rt.X,
+      rt.Y,
+      ...color
     ];
   }
 }

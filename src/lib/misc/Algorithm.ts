@@ -8,4 +8,28 @@ export class Algorithm {
 
     return true;
   }
+
+  public static MaxElement<T>(
+    iterable: Iterable<T>,
+    comp: (a: T, b: T) => boolean = (a, b) => a < b
+  ): T | null {
+    let max: T | null = null;
+
+    for (const value of iterable) {
+      if (max === null) {
+        max = value;
+      } else if (comp(max, value)) {
+        max = value;
+      }
+    }
+
+    return max;
+  }
+
+  public static MinElement<T>(
+    iterable: Iterable<T>,
+    comp: (a: T, b: T) => boolean = (a, b) => a < b
+  ): T | null {
+    return Algorithm.MaxElement(iterable, (a, b) => comp(b, a));
+  }
 }

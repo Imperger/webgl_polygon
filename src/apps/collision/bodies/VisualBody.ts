@@ -1,5 +1,6 @@
 import { Color } from '@/lib/misc/Primitives';
 
 export interface VisualBody {
-  Color(color: Color): void;
+  set Color(color: Color);
+  get Color(): Color;
 }

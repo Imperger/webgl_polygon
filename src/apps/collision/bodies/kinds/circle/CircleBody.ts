@@ -1,11 +1,12 @@
 import { Collider } from '../../../collision_engines/Collider';
 import { DataDescriptor } from '../../../models/DataDescriptor';
 import { Body } from '../../Body';
+import { StaticRectangleCollider } from '../rectangle/StaticRectangleCollider';
 
 import { CircleCollider } from './CircleCollider';
 import { VisualCircle } from './VisualCircle';
 
-import { AABBRectangle, Color, Rectangle, Vec2 } from '@/lib/misc/Primitives';
+import { AABBRectangle, Color, Vec2 } from '@/lib/misc/Primitives';
 
 export class CircleBody implements Body {
   private collider: CircleCollider;
@@ -37,12 +38,16 @@ export class CircleBody implements Body {
     return this.collider.CollideWithCircle(circle);
   }
 
-  public CollideWithRectangle(rect: Rectangle): boolean {
+  public CollideWithRectangle(rect: StaticRectangleCollider): boolean {
     return this.collider.CollideWithRectangle(rect);
   }
 
-  public Color(color: Color): void {
-    this.visual.Color(color);
+  set Color(color: Color) {
+    this.visual.Color = color;
+  }
+
+  get Color(): Color {
+    return this.visual.Color;
   }
 
   public MoveInto(rect: AABBRectangle): void {
@@ -75,7 +80,10 @@ export class CircleBody implements Body {
     this.collider.CheckCollisionWithCircle(circle, elapsed);
   }
 
-  public CheckCollisionWithRectangle(rect: Rectangle, elapsed: number): void {
+  public CheckCollisionWithRectangle(
+    rect: StaticRectangleCollider,
+    elapsed: number
+  ): void {
     this.collider.CheckCollisionWithRectangle(rect, elapsed);
   }
 

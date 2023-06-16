@@ -162,14 +162,9 @@ export class Intersection {
      * Convert the rotated rectangle to aabb by rotating the points of both rectangles by a negative angle.
      */
     {
-      const [lb, rb, rt, lt] = Point.RectangleVertices({
-        Center: {
-          X: aabbRectangle.X + aabbRectangle.Width / 2,
-          Y: aabbRectangle.Y + aabbRectangle.Height / 2
-        },
-        Dimension: { Width: aabbRectangle.Width, Height: aabbRectangle.Height },
-        Angle: -rect.Angle
-      });
+      const [lb, rb, rt, lt] = Point.AabbRectangleVertices(aabbRectangle).map(
+        v => Point.RotateAroundPoint(v, rect.Center, -rect.Angle)
+      );
 
       const aabbNonRotated: AABBRectangle = {
         X: rect.Center.X - rectHalfWidth,
@@ -178,6 +173,7 @@ export class Intersection {
         Height: rect.Dimension.Height
       };
 
+      // TODO Rethink this. We can return true if any of this point inscribed
       if (
         Intersection.AABBRectanglePoint(aabbNonRotated, lb) &&
         Intersection.AABBRectanglePoint(aabbNonRotated, rb) &&
@@ -201,7 +197,51 @@ export class Intersection {
     }
   }
 
+  public static LinePoint(line: Line, point: Vec2): boolean {
+    const aToPointDistance = Point.Distance(line.A, point);
+    const bToPointDistance = Point.Distance(line.B, point);
+    const lineLength = Point.Distance(line.A, line.B);
+
+    // TODO Tune epsilon
+    return Math.abs(aToPointDistance + bToPointDistance - lineLength) <= 0.01;
+  }
+
+  public static CirclePoint(circle: Circle, point: Vec2): boolean {
+    return Point.Distance(circle.Center, point) <= circle.Radius;
+  }
+
+  public static LineCircle(line: Line, circle: Circle): boolean {
+    if (Intersection.CirclePoint(circle, line.A)) {
+      return true;
+    }
+
+    if (Intersection.CirclePoint(circle, line.B)) {
+      return true;
+    }
+
+    const lineLength = Point.Distance(line.A, line.B);
+
+    const dot =
+      Vector2.DotProduct(
+        Vector2.Subtract(circle.Center, line.A),
+        Vector2.Subtract(line.B, line.A)
+      ) /
+      lineLength ** 2;
+
+    const closest = Vector2.Add(
+      Vector2.Multiply(Vector2.Subtract(line.B, line.A), dot),
+      line.A
+    );
+
+    if (!Intersection.LinePoint(line, closest)) {
+      return false;
+    }
+
+    return Point.Distance(closest, circle.Center) <= circle.Radius;
+  }
+
   public static CircleCircle(c0: Circle, c1: Circle): boolean {
+    // TODO Implementation without sqrt: square sum <= (r1 + r2) ^ 2
     return Point.Distance(c0.Center, c1.Center) <= c0.Radius + c1.Radius;
   }
 }

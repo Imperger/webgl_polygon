@@ -1,6 +1,7 @@
 import { CircleCollider } from '../bodies/kinds/circle/CircleCollider';
+import { StaticRectangleCollider } from '../bodies/kinds/rectangle/StaticRectangleCollider';
 
-import { AABBRectangle, Rectangle } from '@/lib/misc/Primitives';
+import { AABBRectangle } from '@/lib/misc/Primitives';
 
 export interface Collider {
   /**
@@ -26,13 +27,16 @@ export interface Collider {
 
   CollideWithCircle(circle: CircleCollider): boolean;
 
-  CollideWithRectangle(rect: Rectangle): boolean;
+  CollideWithRectangle(rect: StaticRectangleCollider): boolean;
 
   CheckCollision(collider: Collider, elapsed: number): void;
 
   CheckCollisionWithCircle(circle: CircleCollider, elapsed: number): void;
 
-  CheckCollisionWithRectangle(rect: Rectangle, elapsed: number): void;
+  CheckCollisionWithRectangle(
+    rect: StaticRectangleCollider,
+    elapsed: number
+  ): void;
 
   Move(boundary: AABBRectangle, elapsed: number): void;
 }

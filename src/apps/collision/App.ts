@@ -1,6 +1,6 @@
-import { BodiesRenderer } from './bodies/BodiesRenderer';
 import { Body } from './bodies/Body';
 import { CircleBody } from './bodies/kinds/circle/CircleBody';
+import { StaticRectangleBody } from './bodies/kinds/rectangle/StaticRectangleBody';
 import { BorderRenderer } from './border/BorderRenderer';
 import { CollisionEngine } from './collision_engines/CollisionEngine';
 import {
@@ -20,16 +20,29 @@ import { SelectionTool } from './tools/SelectionTool/SelectionTool';
 
 import { MouseButton } from '@/lib/misc/Dom';
 import { EventBus } from '@/lib/misc/EventBus';
-import { Dimension, AABBRectangle } from '@/lib/misc/Primitives';
+import {
+  Color,
+  Dimension,
+  AABBRectangle,
+  Rectangle
+} from '@/lib/misc/Primitives';
 import { RandomFloat } from '@/lib/misc/RandomFloat';
 import { Camera2, Camera2Component } from '@/lib/render/Camera';
+import { CircleRenderer } from '@/lib/render/circle/CircleRenderer';
+import { PrimitiveBuilder } from '@/lib/render/PrimitiveBuilder';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
+import { RectangleRenderer } from '@/lib/render/rectangle/RectangleRenderer';
 
 type UpdatedCameraComponent = Partial<Camera2>;
 
 enum ResolutionComponent {
   Width = 0,
   Height
+}
+
+interface SelectedBodyState {
+  target: Body;
+  color: Color;
 }
 
 export class App {
@@ -59,11 +72,13 @@ export class App {
   private collisionEngine!: CollisionEngine;
   private collisionEngineFactory!: CollisionEngineFactory;
 
-  private selectedBodies: Body[] = [];
+  private selectedBodies: SelectedBodyState[] = [];
 
   private engineRenderer!: EngineRenderer;
 
-  private bodiesRenderer!: BodiesRenderer;
+  private bodiesRenderer!: CircleRenderer;
+
+  private obstaclesRenderer!: RectangleRenderer;
 
   public IsEngineRendererEnabled = false;
 
@@ -72,6 +87,8 @@ export class App {
   private interactionTool!: InteractionTool;
 
   private resizeViewBehavior = (d: Dimension) => this.CenterCamera(d);
+
+  private pointerWorld = { X: 0, Y: 0 };
 
   constructor(
     private readonly gl: WebGL2RenderingContext,
@@ -89,7 +106,8 @@ export class App {
       ]
     });
 
-    this.bodiesRenderer = new BodiesRenderer(this.gl);
+    this.bodiesRenderer = new CircleRenderer(this.gl);
+    this.obstaclesRenderer = new RectangleRenderer(this.gl);
 
     this.collisionEngine = this.collisionEngineFactory.Create(engineName);
 
@@ -123,44 +141,44 @@ export class App {
   public SelectBody(x: number, y: number): boolean {
     const world = this.ScreenToWorld(x, y);
 
-    const defaultColor = this.bodyColorConfig.default;
-    this.selectedBodies.forEach(body =>
-      body.Color({ R: defaultColor[0], G: defaultColor[1], B: defaultColor[2] })
-    );
+    this.RestoreSelectedBodiesState();
 
-    this.selectedBodies = this.bodies.filter(body =>
-      body.IsOverlap({ X: world.X, Y: world.Y, Width: 1, Height: 1 })
-    );
-    const selectedColor = this.bodyColorConfig.selected;
-    this.selectedBodies.forEach(body =>
-      body.Color({
-        R: selectedColor[0],
-        G: selectedColor[1],
-        B: selectedColor[2]
-      })
-    );
+    this.SelectBodiesAndStoreState({
+      X: world.X,
+      Y: world.Y,
+      Width: 1,
+      Height: 1
+    });
 
     return true;
   }
 
   public SelectBodies(region: AABBRectangle): boolean {
-    const defaultColor = this.bodyColorConfig.default;
-    this.selectedBodies.forEach(body =>
-      body.Color({ R: defaultColor[0], G: defaultColor[1], B: defaultColor[2] })
-    );
+    this.RestoreSelectedBodiesState();
 
-    this.selectedBodies = this.bodies.filter(body => body.IsInside(region));
-
-    const selectedColor = this.bodyColorConfig.selected;
-    this.selectedBodies.forEach(body =>
-      body.Color({
-        R: selectedColor[0],
-        G: selectedColor[1],
-        B: selectedColor[2]
-      })
-    );
+    this.SelectBodiesAndStoreState(region);
 
     return true;
+  }
+
+  private SelectBodiesAndStoreState(region: AABBRectangle): void {
+    this.selectedBodies = this.bodies
+      .filter(body => body.IsOverlap(region))
+      .map(target => ({ target, color: target.Color }));
+
+    const selectedColor = this.bodyColorConfig.selected;
+    this.selectedBodies.forEach(
+      body =>
+        (body.target.Color = {
+          R: selectedColor[0],
+          G: selectedColor[1],
+          B: selectedColor[2]
+        })
+    );
+  }
+
+  private RestoreSelectedBodiesState(): void {
+    this.selectedBodies.forEach(state => (state.target.Color = state.color));
   }
 
   public ResizeView(dimension: Dimension) {
@@ -185,6 +203,7 @@ export class App {
     App.EventBus.Publish(AppEvent.ResizeView, dimension);
 
     this.bodiesRenderer.ResizeView(dimension);
+    this.obstaclesRenderer.ResizeView(dimension);
     this.border.ResizeView(dimension);
     this.engineRenderer.ResizeView(this.resolution);
   }
@@ -213,6 +232,7 @@ export class App {
   }
 
   public OnMouseMove(e: MouseEvent): void {
+    this.pointerWorld = this.ScreenToWorld(e.offsetX, e.offsetY);
     this.interactionTool.OnMouseMove(e);
   }
 
@@ -297,6 +317,7 @@ export class App {
     App.EventBus.Publish(AppEvent.CameraMove, this.Camera);
 
     this.bodiesRenderer.Camera(this.camera);
+    this.obstaclesRenderer.Camera(this.camera);
     this.border.Camera(this.camera);
     this.engineRenderer.Camera(this.camera);
   }
@@ -347,6 +368,7 @@ export class App {
 
     if (this.collisionEngine !== null) {
       this.UpdateBodies(elapsed);
+      this.obstaclesRenderer.Draw();
       this.bodiesRenderer.Draw();
       this.border.Draw();
 
@@ -371,7 +393,7 @@ export class App {
   }
 
   private BuildBodies(): void {
-    const ComponentsCount = BodiesRenderer.ComponentsPerIndex;
+    const CircleComponentsCount = CircleRenderer.ComponentsPerIndex;
 
     this.bodies = [];
 
@@ -384,25 +406,53 @@ export class App {
     ];
 
     const data = Array.from(
-      { length: this.bodiesCount * ComponentsCount },
-      (_, n) => attributeBuilder[n % ComponentsCount]()
+      { length: this.bodiesCount * CircleComponentsCount },
+      (_, n) => attributeBuilder[n % CircleComponentsCount]()
     );
 
-    this.bodiesRenderer.ConstructAttributes(data);
+    this.bodiesRenderer.UploadAttributes(data);
 
     this.collisionEngine.Reset();
 
     for (let n = 0; n < this.bodiesCount; ++n) {
       const object = new CircleBody(
-        this.bodiesRenderer.Attributes(n),
+        this.bodiesRenderer.PrimitiveAttributes(n),
         this.bodyRadius,
-        { X: RandomFloat(-100, 100), Y: RandomFloat(-100, 100) }
+        {
+          X: RandomFloat(-100, 100),
+          Y: RandomFloat(-100, 100)
+        }
       );
 
       this.bodies.push(object);
 
       this.collisionEngine.Add(object);
     }
+
+    // Static rectangle (obstacle)
+    const obstacleRectangle: Rectangle = {
+      Center: {
+        X: this.fieldDimension.Width / 2,
+        Y: this.fieldDimension.Height / 2
+      },
+      Dimension: { Width: 400, Height: 200 },
+      Angle: RandomFloat(0, 2 * Math.PI)
+    };
+    const obstacles: number[] = PrimitiveBuilder.ColorRectangle(
+      obstacleRectangle,
+      [0.8, 0.8, 0.8]
+    );
+
+    this.obstaclesRenderer.UploadAttributes(obstacles);
+
+    const obstacle = new StaticRectangleBody(
+      this.obstaclesRenderer.PrimitiveAttributes(0),
+      obstacleRectangle
+    );
+
+    this.bodies.push(obstacle);
+
+    this.collisionEngine.Add(obstacle);
   }
 
   private UpdateRadiusForBodies(): void {

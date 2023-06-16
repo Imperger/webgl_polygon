@@ -1,13 +1,15 @@
 import { Collider } from '../../../collision_engines/Collider';
+import { Collision } from '../../Collision';
+import { StaticRectangleCollider } from '../rectangle/StaticRectangleCollider';
 
 import { Intersection } from '@/lib/math/Intersection';
-import { AABBRectangle, Rectangle, Vec2 } from '@/lib/misc/Primitives';
+import { AABBRectangle, Vec2 } from '@/lib/misc/Primitives';
 
 export class CircleCollider implements Collider {
   public constructor(
     public readonly Center: Vec2,
     public Radius: number,
-    private velocity: Vec2
+    public readonly Velocity: Vec2
   ) {}
 
   public IsOverlap(rect: AABBRectangle): boolean {
@@ -42,7 +44,7 @@ export class CircleCollider implements Collider {
     return Intersection.CircleCircle(this, circle);
   }
 
-  public CollideWithRectangle(rect: Rectangle): boolean {
+  public CollideWithRectangle(rect: StaticRectangleCollider): boolean {
     return Intersection.RectangleCircle(rect, this);
   }
 
@@ -51,6 +53,8 @@ export class CircleCollider implements Collider {
   }
 
   CheckCollisionWithCircle(circle: CircleCollider, elapsed: number): void {
+    // TODO Firstly if circles is overlapped we should move they to prevent it
+    // TODO Rethink about using elapsed here. Maybe it should be used only in ::Move()
     const angle = Math.atan2(
       circle.Center.Y - this.Center.Y,
       circle.Center.X - this.Center.X
@@ -63,31 +67,34 @@ export class CircleCollider implements Collider {
     const ay = targetY - circle.Center.Y;
 
     const velocityAmplifier = 1000 / elapsed;
-    this.velocity.X -= ax * velocityAmplifier;
-    this.velocity.Y -= ay * velocityAmplifier;
+    this.Velocity.X -= ax * velocityAmplifier;
+    this.Velocity.Y -= ay * velocityAmplifier;
 
-    circle.velocity.X += ax * velocityAmplifier;
-    circle.velocity.Y += ay * velocityAmplifier;
+    circle.Velocity.X += ax * velocityAmplifier;
+    circle.Velocity.Y += ay * velocityAmplifier;
   }
 
-  CheckCollisionWithRectangle(rect: Rectangle, elapsed: number): void {
-    throw new Error('Method not implemented.');
+  CheckCollisionWithRectangle(
+    rect: StaticRectangleCollider,
+    _elapsed: number
+  ): void {
+    Collision.CircleStaticRectangle(this, rect);
   }
 
   public Move(boundary: AABBRectangle, elapsed: number): void {
     const MaxVelocity = 100;
 
-    const velocity = Math.sqrt(this.velocity.X ** 2 + this.velocity.Y ** 2);
+    const velocity = Math.sqrt(this.Velocity.X ** 2 + this.Velocity.Y ** 2);
 
     if (velocity > MaxVelocity) {
       const normalizeFactor = MaxVelocity / velocity;
 
-      this.velocity.X *= normalizeFactor;
-      this.velocity.Y *= normalizeFactor;
+      this.Velocity.X *= normalizeFactor;
+      this.Velocity.Y *= normalizeFactor;
     }
 
-    let tickVelocityX = this.velocity.X * (elapsed / 1000);
-    let tickVelocityY = this.velocity.Y * (elapsed / 1000);
+    let tickVelocityX = this.Velocity.X * (elapsed / 1000);
+    let tickVelocityY = this.Velocity.Y * (elapsed / 1000);
 
     const boundaryRight = boundary.X + boundary.Width;
     const boundaryTop = boundary.Y + boundary.Height;
@@ -96,24 +103,24 @@ export class CircleCollider implements Collider {
       this.Center.X = boundary.X + this.Radius;
 
       tickVelocityX *= -1;
-      this.velocity.X *= -1;
+      this.Velocity.X *= -1;
     } else if (this.Center.X + this.Radius + tickVelocityX > boundaryRight) {
       this.Center.X = boundaryRight - this.Radius;
 
       tickVelocityX *= -1;
-      this.velocity.X *= -1;
+      this.Velocity.X *= -1;
     }
 
     if (this.Center.Y - this.Radius + tickVelocityY < boundary.Y) {
       this.Center.Y = boundary.X + this.Radius;
 
       tickVelocityY *= -1;
-      this.velocity.Y *= -1;
+      this.Velocity.Y *= -1;
     } else if (this.Center.Y + this.Radius + tickVelocityY > boundaryTop) {
       this.Center.Y = boundaryTop - this.Radius;
 
       tickVelocityY *= -1;
-      this.velocity.Y *= -1;
+      this.Velocity.Y *= -1;
     }
 
     this.Center.X = this.Center.X + tickVelocityX;

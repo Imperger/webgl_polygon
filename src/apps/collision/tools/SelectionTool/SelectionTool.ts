@@ -98,7 +98,7 @@ export class SelectionTool implements InteractionTool {
       Height: rect.max.Y - rect.min.Y
     };
 
-    const innerRegion = PrimitiveBuilder.ColorRectangle(
+    const innerRegion = PrimitiveBuilder.AABBColorRectangle(
       rect.min,
       { Width: this.selectionRect.Width, Height: this.selectionRect.Height },
       [0.3764705882352941, 0.49019607843137253, 0.5450980392156862, 0.65]
@@ -106,7 +106,7 @@ export class SelectionTool implements InteractionTool {
 
     const borderWidth = 1 / this.camera[Camera2Component.Zoom];
     const borderColor: Rgba = [0.47, 0.56, 0.61, 1];
-    const borderTop = PrimitiveBuilder.ColorRectangle(
+    const borderTop = PrimitiveBuilder.AABBColorRectangle(
       { X: rect.min.X - borderWidth, Y: rect.max.Y },
       {
         Width: this.selectionRect.Width + 2 * borderWidth,
@@ -115,13 +115,13 @@ export class SelectionTool implements InteractionTool {
       borderColor
     );
 
-    const borderRight = PrimitiveBuilder.ColorRectangle(
+    const borderRight = PrimitiveBuilder.AABBColorRectangle(
       { X: rect.max.X, Y: rect.min.Y },
       { Width: borderWidth, Height: this.selectionRect.Height },
       borderColor
     );
 
-    const borderBottom = PrimitiveBuilder.ColorRectangle(
+    const borderBottom = PrimitiveBuilder.AABBColorRectangle(
       { X: rect.min.X - borderWidth, Y: rect.min.Y - borderWidth },
       {
         Width: this.selectionRect.Width + 2 * borderWidth,
@@ -130,7 +130,7 @@ export class SelectionTool implements InteractionTool {
       borderColor
     );
 
-    const borderLeft = PrimitiveBuilder.ColorRectangle(
+    const borderLeft = PrimitiveBuilder.AABBColorRectangle(
       { X: rect.min.X - borderWidth, Y: rect.min.Y },
       { Width: borderWidth, Height: this.selectionRect.Height },
       borderColor
