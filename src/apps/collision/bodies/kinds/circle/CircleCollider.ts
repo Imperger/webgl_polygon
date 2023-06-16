@@ -52,9 +52,8 @@ export class CircleCollider implements Collider {
     collider.CheckCollisionWithCircle(this, elapsed);
   }
 
-  CheckCollisionWithCircle(circle: CircleCollider, elapsed: number): void {
+  CheckCollisionWithCircle(circle: CircleCollider, _elapsed: number): void {
     // TODO Firstly if circles is overlapped we should move they to prevent it
-    // TODO Rethink about using elapsed here. Maybe it should be used only in ::Move()
     const angle = Math.atan2(
       circle.Center.Y - this.Center.Y,
       circle.Center.X - this.Center.X
@@ -66,12 +65,11 @@ export class CircleCollider implements Collider {
     const ax = targetX - circle.Center.X;
     const ay = targetY - circle.Center.Y;
 
-    const velocityAmplifier = 1000 / elapsed;
-    this.Velocity.X -= ax * velocityAmplifier;
-    this.Velocity.Y -= ay * velocityAmplifier;
+    this.Velocity.X -= ax;
+    this.Velocity.Y -= ay;
 
-    circle.Velocity.X += ax * velocityAmplifier;
-    circle.Velocity.Y += ay * velocityAmplifier;
+    circle.Velocity.X += ax;
+    circle.Velocity.Y += ay;
   }
 
   CheckCollisionWithRectangle(
