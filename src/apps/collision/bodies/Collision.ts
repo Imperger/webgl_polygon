@@ -57,7 +57,7 @@ export class Collision {
     sides: Line[],
     circle: CircleCollider
   ): Line {
-    const closestSide = Collision.ClosestLineToPoint(sides, circle.Center);
+    const closestSide = Point.ClosestLine(circle.Center, sides);
 
     const lineLength = Point.Distance(closestSide.A, closestSide.B);
 
@@ -86,23 +86,5 @@ export class Collision {
     circle.Center.Y = centerOutside.Y;
 
     return closestSide;
-  }
-
-  private static ClosestLineToPoint(lines: Line[], point: Vec2): Line {
-    let closestIdx = -1;
-    let closestDistance = Number.POSITIVE_INFINITY;
-
-    for (let n = 0; n < lines.length; ++n) {
-      const line = lines[n];
-      const distance =
-        Point.SqrDistance(line.A, point) + Point.SqrDistance(point, line.B);
-
-      if (distance < closestDistance) {
-        closestIdx = n;
-        closestDistance = distance;
-      }
-    }
-
-    return lines[closestIdx];
   }
 }

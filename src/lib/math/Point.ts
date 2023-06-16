@@ -1,6 +1,7 @@
-import { AABBRectangle, Rectangle, Vec2 } from '../misc/Primitives';
+import { AABBRectangle, Line, Rectangle, Vec2 } from '../misc/Primitives';
 
 import { Real } from './Real';
+import { Vector2 } from './Vector';
 
 interface ExtremumResult<TPoint> {
   min: TPoint;
@@ -113,6 +114,43 @@ export class Point {
       { X: rect.X + rect.Width, Y: rect.Y + rect.Width },
       { X: rect.X, Y: rect.Y + rect.Width }
     ];
+  }
+
+  public static ClosestLine(point: Vec2, lines: Line[]): Line {
+    let closestIdx = -1;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    for (let n = 0; n < lines.length; ++n) {
+      const line = lines[n];
+
+      const distance = Point.Distance(Point.ClosestToLine(point, line), point);
+
+      if (distance < closestDistance) {
+        closestIdx = n;
+        closestDistance = distance;
+      }
+    }
+
+    return lines[closestIdx];
+  }
+
+  public static ClosestToLine(point: Vec2, line: Line): Vec2 {
+    const ab = Vector2.Subtract(line.B, line.A);
+    const ap = Vector2.Subtract(point, line.A);
+
+    const proj = Vector2.DotProduct(ap, ab);
+
+    const abSqrLen = Vector2.DotProduct(ab, ab);
+
+    const d = proj / abSqrLen;
+
+    if (d <= 0) {
+      return line.A;
+    } else if (d >= 1) {
+      return line.B;
+    } else {
+      return Vector2.Add(line.A, Vector2.Multiply(ab, d));
+    }
   }
 
   public static IsEqual(a: Vec2, b: Vec2): boolean {
