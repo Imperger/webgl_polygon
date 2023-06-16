@@ -43,12 +43,6 @@ export class Collision {
 
     const afterBounce = Vector2.Reflect(circle.Velocity, tangent);
 
-    // The velocity is parallel to the surface
-    if (Point.IsEqual(circle.Velocity, afterBounce)) {
-      afterBounce.X = -afterBounce.X;
-      afterBounce.Y = -afterBounce.Y;
-    }
-
     circle.Velocity.X = afterBounce.X;
     circle.Velocity.Y = afterBounce.Y;
   }
