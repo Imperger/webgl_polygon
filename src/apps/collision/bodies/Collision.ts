@@ -41,6 +41,10 @@ export class Collision {
       tangent = Vector2.Subtract(collided[0].A, collided[0].B);
     }
 
+    if (collided.length > 0) {
+      Collision.SolveCollision(collided, circle);
+    }
+
     const afterBounce = Vector2.Reflect(circle.Velocity, tangent);
 
     circle.Velocity.X = afterBounce.X;
@@ -51,27 +55,29 @@ export class Collision {
     sides: Line[],
     circle: CircleCollider
   ): Line {
+    return Collision.AttachToClosestSide(sides, circle, true);
+  }
+
+  private static SolveCollision(sides: Line[], circle: CircleCollider): void {
+    Collision.AttachToClosestSide(sides, circle, false);
+  }
+
+  private static AttachToClosestSide(
+    sides: Line[],
+    circle: CircleCollider,
+    oppositeSide: boolean
+  ): Line {
     const closestSide = Point.ClosestLine(circle.Center, sides);
 
-    const lineLength = Point.Distance(closestSide.A, closestSide.B);
-
-    const dot =
-      Vector2.DotProduct(
-        Vector2.Subtract(circle.Center, closestSide.A),
-        Vector2.Subtract(closestSide.B, closestSide.A)
-      ) /
-      lineLength ** 2;
-
-    const closestPointOnSide = Vector2.Add(
-      Vector2.Multiply(Vector2.Subtract(closestSide.B, closestSide.A), dot),
-      closestSide.A
-    );
+    const closestPointOnSide = Point.ClosestToLine(circle.Center, closestSide);
 
     const transformNormal = Vector2.Normalize(
       Vector2.Subtract(closestPointOnSide, circle.Center)
     );
 
-    const centerOutside = Vector2.Add(
+    const operator = oppositeSide ? Vector2.Add : Vector2.Subtract;
+
+    const centerOutside = operator(
       closestPointOnSide,
       Vector2.Multiply(transformNormal, circle.Radius)
     );
