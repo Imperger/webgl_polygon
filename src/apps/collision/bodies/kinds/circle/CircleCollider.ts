@@ -80,7 +80,7 @@ export class CircleCollider implements Collider {
   }
 
   public Move(boundary: AABBRectangle, elapsed: number): void {
-    const MaxVelocity = 100;
+    const MaxVelocity = 25;
 
     const velocity = Math.sqrt(this.Velocity.X ** 2 + this.Velocity.Y ** 2);
 
