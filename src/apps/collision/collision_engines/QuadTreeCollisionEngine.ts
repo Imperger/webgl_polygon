@@ -493,15 +493,6 @@ export class QuadTreeCollisionEngine implements CollisionEngine {
     this.root.RecalculateBucket(this.root, this.leafs, this.nodePool);
   }
 
-  // TODO Remove obsolete
-  FindCollisions(object: Collider): Collider[] {
-    const nodes = this.root.FindNodeContaining(object, this.nodePool);
-
-    return nodes.flatMap(node =>
-      this.nodePool.At(node).FilterCollided(object)
-    );
-  }
-
   ForEachCollided(handler: (a: Collider, b: Collider) => void): void {
     this.leafs.forEach(leaf => {
       const bodies = [...QuadNode.ObjectIterator(this.nodePool.At(leaf))];

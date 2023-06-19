@@ -122,16 +122,20 @@ export class SelectionTool
     };
 
     const innerRegion = PrimitiveBuilder.AABBColorRectangle(
-      rect.min,
-      { Width: this.selectionRect.Width, Height: this.selectionRect.Height },
+      {
+        ...rect.min,
+        Width: this.selectionRect.Width,
+        Height: this.selectionRect.Height
+      },
       [0.3764705882352941, 0.49019607843137253, 0.5450980392156862, 0.65]
     );
 
     const borderWidth = 1 / this.camera[Camera2Component.Zoom];
     const borderColor: Rgba = [0.47, 0.56, 0.61, 1];
     const borderTop = PrimitiveBuilder.AABBColorRectangle(
-      { X: rect.min.X - borderWidth, Y: rect.max.Y },
       {
+        X: rect.min.X - borderWidth,
+        Y: rect.max.Y,
         Width: this.selectionRect.Width + 2 * borderWidth,
         Height: borderWidth
       },
@@ -139,14 +143,19 @@ export class SelectionTool
     );
 
     const borderRight = PrimitiveBuilder.AABBColorRectangle(
-      { X: rect.max.X, Y: rect.min.Y },
-      { Width: borderWidth, Height: this.selectionRect.Height },
+      {
+        X: rect.max.X,
+        Y: rect.min.Y,
+        Width: borderWidth,
+        Height: this.selectionRect.Height
+      },
       borderColor
     );
 
     const borderBottom = PrimitiveBuilder.AABBColorRectangle(
-      { X: rect.min.X - borderWidth, Y: rect.min.Y - borderWidth },
       {
+        X: rect.min.X - borderWidth,
+        Y: rect.min.Y - borderWidth,
         Width: this.selectionRect.Width + 2 * borderWidth,
         Height: borderWidth
       },
@@ -154,8 +163,12 @@ export class SelectionTool
     );
 
     const borderLeft = PrimitiveBuilder.AABBColorRectangle(
-      { X: rect.min.X - borderWidth, Y: rect.min.Y },
-      { Width: borderWidth, Height: this.selectionRect.Height },
+      {
+        X: rect.min.X - borderWidth,
+        Y: rect.min.Y,
+        Width: borderWidth,
+        Height: this.selectionRect.Height
+      },
       borderColor
     );
 

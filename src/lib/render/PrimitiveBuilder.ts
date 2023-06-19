@@ -1,21 +1,16 @@
 import { Point } from '../math/Point';
-import { Dimension, Rectangle, Rgb, Rgba, Vec2 } from '../misc/Primitives';
+import { AABBRectangle, Rectangle, Rgb, Rgba } from '../misc/Primitives';
 
 export class PrimitiveBuilder {
   // TODO Use AABBRectangle interface in params
   public static AABBColorRectangle(
-    p0: Vec2,
-    dimension: Dimension,
+    rect: AABBRectangle,
     color: Rgb | Rgba
   ): number[] {
-    const leftBottom = [p0.X, p0.Y, ...color];
-    const leftTop = [p0.X, p0.Y + dimension.Height, ...color];
-    const rightTop = [
-      p0.X + dimension.Width,
-      p0.Y + dimension.Height,
-      ...color
-    ];
-    const rightBottom = [p0.X + dimension.Width, p0.Y, ...color];
+    const leftBottom = [rect.X, rect.Y, ...color];
+    const leftTop = [rect.X, rect.Y + rect.Height, ...color];
+    const rightTop = [rect.X + rect.Width, rect.Y + rect.Height, ...color];
+    const rightBottom = [rect.X + rect.Width, rect.Y, ...color];
 
     return [
       ...leftBottom,

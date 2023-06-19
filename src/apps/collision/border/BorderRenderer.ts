@@ -79,26 +79,36 @@ export class BorderRenderer extends PrimitivesRenderer {
     // Left, Top, Right, Bottom
     return [
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: -BorderWidth, Y: 0 },
-        { Width: BorderWidth, Height: this.borderDimension.Height },
+        {
+          X: -BorderWidth,
+          Y: 0,
+          Width: BorderWidth,
+          Height: this.borderDimension.Height
+        },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: -BorderWidth, Y: this.borderDimension.Height },
         {
+          X: -BorderWidth,
+          Y: this.borderDimension.Height,
           Width: this.borderDimension.Width + 2 * BorderWidth,
           Height: BorderWidth
         },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: this.borderDimension.Width, Y: 0 },
-        { Width: BorderWidth, Height: this.borderDimension.Height },
+        {
+          X: this.borderDimension.Width,
+          Y: 0,
+          Width: BorderWidth,
+          Height: this.borderDimension.Height
+        },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: -BorderWidth, Y: -BorderWidth },
         {
+          X: -BorderWidth,
+          Y: -BorderWidth,
           Width: this.borderDimension.Width + 2 * BorderWidth,
           Height: BorderWidth
         },
