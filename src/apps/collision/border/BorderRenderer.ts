@@ -1,17 +1,23 @@
 import FBorder from './border.frag';
 import VBorder from './border.vert';
 
-import { NotNull } from '@/lib/misc/NotNull';
+import { EnumSize } from '@/lib/misc/EnumSize';
 import { Dimension, Rgb } from '@/lib/misc/Primitives';
 import { PrimitiveBuilder } from '@/lib/render/PrimitiveBuilder';
 import { RVec2, RVec3 } from '@/lib/render/Primitives';
-import { ShaderProgram } from '@/lib/render/ShaderProgram';
+import { PrimitivesRenderer } from '@/lib/render/PrimitivesRenderer';
+import { TypeSizeResolver } from '@/lib/render/TypeSizeResolver';
 
-export class BorderRenderer {
-  private vbo!: WebGLBuffer;
-  private vao!: WebGLVertexArrayObject;
-  private shader!: ShaderProgram;
-  private attributes!: Float32Array;
+enum BorderComponent {
+  X = 0,
+  Y,
+  R,
+  G,
+  B
+}
+
+export class BorderRenderer extends PrimitivesRenderer {
+  public static ComponentsPerIndex = EnumSize(BorderComponent);
 
   private viewDimension: RVec2 = [800, 600];
   private camera: RVec3 = [0, 0, 1];
@@ -19,13 +25,35 @@ export class BorderRenderer {
   private readonly borderColorConfig = {
     default: [0.5, 0.5, 0.5] as Rgb
   };
-  constructor(
-    private gl: WebGL2RenderingContext,
-    private fieldDimension: Dimension
-  ) {
-    this.SetupBorder();
+  constructor(gl: WebGL2RenderingContext, private borderDimension: Dimension) {
+    const floatSize = TypeSizeResolver.Resolve(gl.FLOAT);
+    const stride = floatSize * BorderRenderer.ComponentsPerIndex;
 
-    this.ResizeView(fieldDimension);
+    super(
+      gl,
+      { vertex: VBorder, fragment: FBorder },
+      [
+        {
+          name: 'a_vertex',
+          size: 2,
+          type: gl.FLOAT,
+          normalized: false,
+          stride,
+          offset: 0
+        },
+        {
+          name: 'a_color',
+          size: 3,
+          type: gl.FLOAT,
+          normalized: false,
+          stride,
+          offset: 2 * floatSize
+        }
+      ],
+      { indicesPerPrimitive: 6, basePrimitiveType: gl.TRIANGLES }
+    );
+
+    this.ResizeView(borderDimension);
   }
 
   public ResizeView(size: Dimension): void {
@@ -35,15 +63,9 @@ export class BorderRenderer {
   }
 
   public Dimension(size: Dimension): void {
-    this.fieldDimension = { ...size };
+    this.borderDimension = { ...size };
 
-    this.BuildBorder();
-
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.attributes,
-      this.gl.DYNAMIC_DRAW
-    );
+    this.UploadAttributes(this.BuildBorder());
   }
 
   public Camera(camera: RVec3): void {
@@ -52,103 +74,36 @@ export class BorderRenderer {
     this.shader.SetUniform3fv('u_cam', this.camera);
   }
 
-  public Draw(): void {
-    this.shader.Use();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.attributes,
-      this.gl.DYNAMIC_DRAW
-    );
-    this.gl.bindVertexArray(this.vao);
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.attributes.length / 5);
-  }
-
-  private SetupBorder(): void {
-    this.vbo = this.gl.createBuffer() ?? NotNull();
-    this.vao = this.gl.createVertexArray() ?? NotNull();
-
-    this.shader = new ShaderProgram(this.gl);
-    this.shader.Attach(this.gl.FRAGMENT_SHADER, FBorder);
-    this.shader.Attach(this.gl.VERTEX_SHADER, VBorder);
-    this.shader.Link();
-    this.shader.Use();
-
-    this.SetupBorderAttributes();
-
-    this.shader.SetUniform3fv('u_cam', this.camera);
-    this.shader.SetUniform2fv('u_resolution', this.viewDimension);
-  }
-
-  private SetupBorderAttributes(): void {
-    const FloatSize = Float32Array.BYTES_PER_ELEMENT;
-    const ComponentsCount = 5;
-
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.BuildBorder();
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.attributes,
-      this.gl.DYNAMIC_DRAW
-    );
-
-    this.gl.bindVertexArray(this.vao);
-
-    const posLoc = this.shader.GetAttributeLocation('a_vertex');
-    this.gl.enableVertexAttribArray(posLoc);
-    this.gl.vertexAttribPointer(
-      posLoc,
-      2,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      0
-    );
-
-    const colorLoc = this.shader.GetAttributeLocation('a_color');
-    this.gl.enableVertexAttribArray(colorLoc);
-    this.gl.vertexAttribPointer(
-      colorLoc,
-      3,
-      this.gl.FLOAT,
-      false,
-      FloatSize * ComponentsCount,
-      FloatSize * 2
-    );
-
-    this.gl.bindVertexArray(null);
-  }
-
-  private BuildBorder(): void {
+  private BuildBorder() {
     const BorderWidth = 2;
     // Left, Top, Right, Bottom
-    this.attributes = new Float32Array([
+    return [
       ...PrimitiveBuilder.AABBColorRectangle(
         { X: -BorderWidth, Y: 0 },
-        { Width: BorderWidth, Height: this.fieldDimension.Height },
+        { Width: BorderWidth, Height: this.borderDimension.Height },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: -BorderWidth, Y: this.fieldDimension.Height },
+        { X: -BorderWidth, Y: this.borderDimension.Height },
         {
-          Width: this.fieldDimension.Width + 2 * BorderWidth,
+          Width: this.borderDimension.Width + 2 * BorderWidth,
           Height: BorderWidth
         },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
-        { X: this.fieldDimension.Width, Y: 0 },
-        { Width: BorderWidth, Height: this.fieldDimension.Height },
+        { X: this.borderDimension.Width, Y: 0 },
+        { Width: BorderWidth, Height: this.borderDimension.Height },
         this.borderColorConfig.default
       ),
       ...PrimitiveBuilder.AABBColorRectangle(
         { X: -BorderWidth, Y: -BorderWidth },
         {
-          Width: this.fieldDimension.Width + 2 * BorderWidth,
+          Width: this.borderDimension.Width + 2 * BorderWidth,
           Height: BorderWidth
         },
         this.borderColorConfig.default
       )
-    ]);
+    ];
   }
 }
