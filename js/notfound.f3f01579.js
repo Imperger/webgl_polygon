@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkwebgl_polygon"]=self["webpackChunkwebgl_polygon"]||[]).push([[245],{718:function(e,n,t){t.r(n),t.d(n,{default:function(){return _}});var l=function(){var e=this,n=e._self._c;e._self._setupProxy;return n("h1",{staticClass:"center"},[e._v("Page not found")])},s=[],u=t(655),c=t(195);let r=class extends c.w3{};r=(0,u.gn)([c.wA],r);var o=r,a=o,f=t(736),p=(0,f.Z)(a,l,s,!1,null,"d99c64c8",null),_=p.exports}}]);
+//# sourceMappingURL=notfound.f3f01579.js.map
