@@ -9,7 +9,6 @@ import VSelectionRectangle from './SelectionRectangle.vert';
 import { Point } from '@/lib/math/Point';
 import { EnumSize } from '@/lib/misc/EnumSize';
 import { Unsubscription } from '@/lib/misc/EventBus';
-import { NotNull } from '@/lib/misc/NotNull';
 import {
   Dimension,
   AABBRectangle,
@@ -20,13 +19,17 @@ import {
 import { Camera2Component } from '@/lib/render/Camera';
 import { PrimitiveBuilder } from '@/lib/render/PrimitiveBuilder';
 import { RVec2, RVec2Component, RVec3 } from '@/lib/render/Primitives';
-import { ShaderProgram } from '@/lib/render/ShaderProgram';
+import { PrimitivesRenderer } from '@/lib/render/PrimitivesRenderer';
+import { TypeSizeResolver } from '@/lib/render/TypeSizeResolver';
 
-export class SelectionTool implements InteractionTool {
-  private vbo!: WebGLBuffer;
-  private vao!: WebGLVertexArrayObject;
-  private shader!: ShaderProgram;
-  private attributes: Float32Array | null = null;
+export class SelectionTool
+  extends PrimitivesRenderer
+  implements InteractionTool
+{
+  public static readonly ComponentsPerIndex =
+    EnumSize(RVec2Component) + EnumSize(RgbaComponent);
+
+  private baseDraw = () => {};
 
   private viewDimension: RVec2 = [800, 600];
   private camera: RVec3 = [0, 0, 1];
@@ -36,19 +39,39 @@ export class SelectionTool implements InteractionTool {
 
   private zoom: ZoomDefault;
 
-  private readonly ComponentsCount =
-    EnumSize(RVec2Component) + EnumSize(RgbaComponent);
-
   private eventBusUnsubs!: Unsubscription[];
 
-  constructor(
-    private readonly gl: WebGL2RenderingContext,
-    private readonly app: App
-  ) {
+  constructor(gl: WebGL2RenderingContext, private readonly app: App) {
+    const floatSize = TypeSizeResolver.Resolve(gl.FLOAT);
+    const stride = floatSize * SelectionTool.ComponentsPerIndex;
+
+    super(
+      gl,
+      { vertex: VSelectionRectangle, fragment: FSelectionRectangle },
+      [
+        {
+          name: 'a_vertex',
+          size: 2,
+          type: gl.FLOAT,
+          normalized: false,
+          stride,
+          offset: 0
+        },
+        {
+          name: 'a_color',
+          size: 4,
+          type: gl.FLOAT,
+          normalized: false,
+          stride,
+          offset: 2 * floatSize
+        }
+      ],
+      { indicesPerPrimitive: 6, basePrimitiveType: gl.TRIANGLES }
+    );
+
     this.zoom = new ZoomDefault(this.app);
 
     this.SetupListeners();
-    this.Setup();
 
     this.ResizeView(this.app.ViewDimension);
 
@@ -136,13 +159,15 @@ export class SelectionTool implements InteractionTool {
       borderColor
     );
 
-    this.attributes = new Float32Array([
+    this.UploadAttributes([
       ...innerRegion,
       ...borderTop,
       ...borderRight,
       ...borderBottom,
       ...borderLeft
     ]);
+
+    this.baseDraw = super.Draw;
   }
 
   OnWheel(e: WheelEvent): void {
@@ -155,24 +180,8 @@ export class SelectionTool implements InteractionTool {
 
   public OnTouchEnd(_e: TouchEvent): void {}
 
-  Draw(_elapsed: number): void {
-    if (this.attributes === null) {
-      return;
-    }
-
-    this.shader.Use();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.attributes,
-      this.gl.DYNAMIC_DRAW
-    );
-    this.gl.bindVertexArray(this.vao);
-    this.gl.drawArrays(
-      this.gl.TRIANGLES,
-      0,
-      this.attributes.length / this.ComponentsCount
-    );
+  Draw(): void {
+    this.baseDraw();
   }
 
   private SetupListeners(): void {
@@ -188,53 +197,5 @@ export class SelectionTool implements InteractionTool {
 
   public Dispose(): void {
     this.eventBusUnsubs.forEach(unsub => unsub());
-  }
-
-  private Setup(): void {
-    this.vbo = this.gl.createBuffer() ?? NotNull();
-    this.vao = this.gl.createVertexArray() ?? NotNull();
-
-    this.shader = new ShaderProgram(this.gl);
-    this.shader.Attach(this.gl.FRAGMENT_SHADER, FSelectionRectangle);
-    this.shader.Attach(this.gl.VERTEX_SHADER, VSelectionRectangle);
-    this.shader.Link();
-    this.shader.Use();
-
-    this.SetupAttributes();
-
-    this.shader.SetUniform3fv('u_cam', this.camera);
-    this.shader.SetUniform2fv('u_resolution', this.viewDimension);
-  }
-
-  private SetupAttributes(): void {
-    const ComponentSize = Float32Array.BYTES_PER_ELEMENT;
-
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-
-    this.gl.bindVertexArray(this.vao);
-
-    const posLoc = this.shader.GetAttributeLocation('a_vertex');
-    this.gl.enableVertexAttribArray(posLoc);
-    this.gl.vertexAttribPointer(
-      posLoc,
-      EnumSize(RVec2Component),
-      this.gl.FLOAT,
-      false,
-      ComponentSize * this.ComponentsCount,
-      0
-    );
-
-    const colorLoc = this.shader.GetAttributeLocation('a_color');
-    this.gl.enableVertexAttribArray(colorLoc);
-    this.gl.vertexAttribPointer(
-      colorLoc,
-      EnumSize(RgbaComponent),
-      this.gl.FLOAT,
-      false,
-      ComponentSize * this.ComponentsCount,
-      ComponentSize * EnumSize(RVec2Component)
-    );
-
-    this.gl.bindVertexArray(null);
   }
 }
